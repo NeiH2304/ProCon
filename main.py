@@ -28,7 +28,7 @@ def get_args():
     parser.add_argument("--n_epochs", type=str, default=1000)
     parser.add_argument("--log_path", type=str, default="tensorboard")
     parser.add_argument("--saved_path", type=str, default="trained_models")
-    parser.add_argument("--show_screen", type=str, default=True)
+    parser.add_argument("--show_screen", type=str, default=False)
     parser.add_argument("--load_checkpoint", type=str, default=False)
     parser.add_argument("--saved_checkpoint", type=str, default=True)   
 
