@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+            #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Thu Nov  5 09:45:45 2020
@@ -106,15 +106,10 @@ class Agent():
             reward_predict = []
             pre_acts = []
             for j in range(len(ns)):
-                
                 state = ns[j]
-                act = self.get_exploitation_action(state, i)
-                act = [1 if x == act else 0 for x in range(self.action_dim)]
-                pre_acts.append(act)
-                actions_predict = torch.from_numpy(
-                    np.array([np.array(act, dtype=np.float32)])).to(self.device)
-                reward = self.target_critics[i](torch.from_numpy(
-                    np.array([state])).to(self.device), actions_predict).to('cpu').data.numpy()[0]
+                reward = torch.max(self.target_actors[i](torch.from_numpy(
+                    np.array([state])).to(self.device))).to('cpu').data.numpy()
+                # print(reward)
                 reward_predict.append(reward)
                 
             reward_predict = np.array(reward_predict)
@@ -127,32 +122,31 @@ class Agent():
             pre_acts = Variable(torch.from_numpy(pre_acts).to(self.device))
             reward_predict = torch.squeeze(torch.from_numpy(reward_predict).to(self.device))
             
-            ''' ---------------------- optimize critic ----------------------
+            ''' ---------------------- optimize ----------------------
             Use target actor exploitation policy here for loss evaluation
             y_exp = r + gamma*Q'( s2, pi'(s2))
             y_pred = Q( s1, a1)
             '''
             y_expected = r + self.gamma * reward_predict
-            y_predicted = torch.squeeze(self.critics[i].forward(s, pre_acts))
-
+            y_predicted = torch.squeeze(self.actors[i].forward(s))
+            # print(y_predicted)
+            
+            y_predicted = torch.amax(y_predicted, dim = -1)
+            # print(y_expected)
+            # print(y_predicted)
             ''' compute critic loss, and update the critic '''
-            loss_critic = F.mse_loss(y_predicted, y_expected)
-            # print(y_expected, y_predicted)
-            self.critic_optimizers[i].zero_grad()
-            loss_critic.backward()
-            self.critic_optimizers[i].step()
-            ''' ---------------------- optimize actor ----------------------'''
-            loss_actor = -1 * torch.sum(self.critics[i].forward(s, pre_acts))
+            loss_actor = F.mse_loss(y_predicted, y_expected)
+            # print(y_expected)
             self.actor_optimizers[i].zero_grad()
             loss_actor.backward()
             self.actor_optimizers[i].step()
             
             utils.soft_update(self.target_actors[i], self.actors[i], self.tau)
-            utils.soft_update(self.target_critics[i], self.critics[i], self.tau)
-            self.critic_loss_value = loss_critic.to('cpu').data.numpy()
             self.actor_loss_value = loss_actor.to('cpu').data.numpy()
+            # for param in self.actors[i].parameters():
+            #     print(param.data)
         self.iter += 1
-    
+        
     def select_action_predict(self, state):
         actions = []
         state = copy.deepcopy(state)

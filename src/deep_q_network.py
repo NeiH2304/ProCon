@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-EPS = 0.003
+EPS = 1
 
 def fanin_init(size, fanin=None):
 	fanin = fanin or size[0]
@@ -93,10 +93,7 @@ class Actor(nn.Module):
 		x = F.relu(self.fc1(state))
 		x = F.relu(self.fc2(x))
 		x = F.relu(self.fc3(x))
-		action = F.tanh(self.fc4(x))
-
-		action = action
-
+		action = self.fc4(x)
 		return action
 
 

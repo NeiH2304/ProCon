@@ -84,9 +84,9 @@ def train(opt):
                 prob = []
                 for i in range(1):
                     _state = agent_2.get_state_actor()
-                    _state[1] = agent_2.env.get_agent_state(_state[1], i)
-                    prob.append(agent_2.actors[i](torch.from_numpy(np.array(
-                        flatten(_state), dtype=np.float32)).to(agent_1.device)))    
+                    _state[1] = agent_1.env.get_agent_state(_state[1], i)
+                    prob.append(agent_1.target_actors[i](torch.from_numpy(np.array(
+                        flatten(_state), dtype=np.float32)).to(agent_1.device)))   
                     
                 for i in range(1):
                     prob[i] = prob[i].tolist()
@@ -94,7 +94,7 @@ def train(opt):
                         prob[i][j] = round(prob[i][j], 4)
                     print(prob[i])  
                 
-                Loss_critic_value.append(agent_1.critic_loss_value)
+                # Loss_critic_value.append(agent_1.critic_loss_value)
                 Loss_actor_value.append(agent_1.actor_loss_value)
                 
                 
@@ -105,8 +105,8 @@ def train(opt):
                 if done:
                     break
             
-            vizualize(Loss_critic_value, 'Loss_critic_value', 'red')
-            vizualize(Loss_actor_value, 'Loss_actor_value', 'blue')
+                vizualize(Loss_critic_value, 'Loss_critic_value', 'red')
+                vizualize(Loss_actor_value, 'Loss_actor_value', 'blue')
             if opt.show_screen:
                 BGame.restart()
             end = time.time()
