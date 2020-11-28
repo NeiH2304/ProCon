@@ -105,8 +105,8 @@ def train(opt):
                 if done:
                     break
             
-                vizualize(Loss_critic_value, 'Loss_critic_value', 'red')
-                vizualize(Loss_actor_value, 'Loss_actor_value', 'blue')
+            vizualize(Loss_critic_value, 'Loss_critic_value', 'red')
+            vizualize(Loss_actor_value, 'Loss_actor_value', 'blue')
             if opt.show_screen:
                 BGame.restart()
             end = time.time()
