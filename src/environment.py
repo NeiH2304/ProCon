@@ -211,7 +211,7 @@ class Environment(object):
     
     def next_frame(self, actions_1, actions_2, BGame, change):
         
-        point_punish = 20 
+        point_punish = 50 
         punish = 0
         new_coord_A = []
         new_coord_B = []

@@ -6,8 +6,6 @@ for i in range(2000):
     f = open(file_name, 'w')
     m = random.randint(10, 20)
     n = random.randint(10, 20)
-    m = 20
-    n = 20
         
     score_matrix = []
     mx = random.randint(3, 16)
@@ -59,7 +57,7 @@ for i in range(2000):
         treasure_coord[j + num_treasures] = [m - _x - 1, n - _y - 1, value]
     
            
-    num_walls = 0 #random.randint(int(m * n / 30), int(m * n / 20))
+    num_walls = random.randint(int(m * n / 30), int(m * n / 20))
     
     wall_coord = [0] * (num_walls * 2)
     for j in range(num_walls):

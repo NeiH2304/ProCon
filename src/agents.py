@@ -282,7 +282,6 @@ class Agent():
         for i in range(self.num_agents):
             states_1[i] = flatten(states_1[i])
             next_states_1[i] = flatten(next_states_1[i])
-            rewards_1[i] = (rewards_1[i] + reward * (1.0 / self.num_agents)) * 0.5
             self.memories[i].store_transition(states_1[i], actions_1[i], rewards_1[i], next_states_1[i])
             
         self.optimize()
