@@ -189,11 +189,49 @@ class Environment(object):
         
         return agent_matrix
     
-    def fit_action(self, agent_id, state, act, agent_coord_1, agent_coord_2):
+    def predict_scores(self, x, y, state):
+        score_matrix, agents_matrix, conquer_matrix, treasures_matrix = state
+        score = 0
+        discount = 0.025
+        p_1 = 3
+        p_2 = 2
+        for i in range(1, 10):
+            for j in range(max(0, x - i), min(self.height, x + i + 1)):
+                # if j < 0 or j > self.height or k < 0 or k > self.width:
+                #     continue
+                if y - i >= 0:
+                    if score_matrix[j][y - i] > -100: 
+                        _sc = treasures_matrix[j][y - i] ** p_1
+                        if(conquer_matrix[0][j][y - i] != 1):
+                            _sc += (score_matrix[j][y - i] ** p_2)
+                        score += _sc * (discount**i)
+                if y + i < self.width:
+                    if score_matrix[j][y + i] > -100: 
+                        _sc = treasures_matrix[j][y + i] ** p_1
+                        if(conquer_matrix[0][j][y + i] != 1):
+                            _sc += (score_matrix[j][y + i] ** p_2)
+                        score += _sc * (discount**i)
+            for k in range(max(0, y - i), min(self.height, y + i + 1)):
+                if x - i >= 0:
+                    if score_matrix[x - i][k] > -100: 
+                        _sc = treasures_matrix[x - i][k] ** p_1
+                        if(conquer_matrix[0][x - i][k] != 1):
+                            _sc += (score_matrix[x - i][k] ** p_2)
+                        score += _sc * (discount**i)
+                if x + i < self.width:
+                    if score_matrix[x + i][k] > -100: 
+                        _sc = treasures_matrix[x + i][k] ** p_1
+                        if(conquer_matrix[0][x + i][k] != 1):
+                            _sc += (score_matrix[x + i][k] ** p_2)
+                        score += _sc * (discount**i)
+        return score
+    
+    def fit_action(self, agent_id, state, act, agent_coord_1, agent_coord_2, predict = True):
         score_matrix, agents_matrix, conquer_matrix, treasures_matrix = copy.deepcopy(state)
         x, y = agent_coord_1[agent_id][0], agent_coord_1[agent_id][1]     
         new_coord = (self.next_action(x, y, act))
         _x, _y = new_coord
+        aux_score = 0
         if _x >= 0 and _x < self.height and _y >= 0 and _y < self.width and score_matrix[_x][_y] > -100:
             if agents_matrix[_x][_y] == 0:
                 if conquer_matrix[1][_x][_y] == 0:
@@ -202,12 +240,17 @@ class Environment(object):
                     conquer_matrix[0][_x][_y] = 1
                     agent_coord_1[agent_id][0] = _x
                     agent_coord_1[agent_id][1] = _y
+                    aux_score += 2
+                    aux_score += treasures_matrix[_x][_y] * 2
                 else:
                     conquer_matrix[1][_x][_y] = 0
-                
+        
         state = [score_matrix, agents_matrix, conquer_matrix, treasures_matrix]
+        aux_score += self.predict_scores(_x, _y, state)
         score_1, score_2, treasures_score_1, treasures_score_2 = self.compute_score(state)
-        return state, agent_coord_1, score_1 + treasures_score_1
+        if(predict is False):
+            aux_score = 0
+        return state, agent_coord_1, score_1 + treasures_score_1 - score_2 - treasures_score_2 + aux_score
     
     def next_frame(self, actions_1, actions_2, BGame, change):
         
