@@ -45,7 +45,7 @@ class Agent():
         self.chkpoint = chkpoint
         self.num_agents = num_agents
         self.agent_name = agent_name
-        self.use_cuda = torch.cuda.is_available()
+        self.use_cuda = False
         self.noise = utils.OrnsteinUhlenbeckActionNoise(self.action_dim)
 
         self.actors = [Actor(self.state_dim_actor, self.action_dim) for i in range(num_agent_lim)]
@@ -175,9 +175,11 @@ class Agent():
                 scores[act] = _score - init_score
                 mn = min(mn, _score - init_score)
                 mx = max(mx, _score - init_score)
+                # print(_score, init_score)
+            scores[0] -= 2
             for j in range(len(scores)):
                 scores[j] = (scores[j] - mn) / (mx - mn + 0.0001)
-                scores[j] **= 3
+                scores[j] **= 5
             sum = np.sum(scores) + 0.0001
             for j in range(len(scores)):
                 scores[j] = scores[j] / sum

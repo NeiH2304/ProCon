@@ -24,8 +24,6 @@ def _test(opt):
     max_actions = 9
     num_agents = len(data[0][3])
     epsilon = opt.initial_epsilon
-    scores_of_team_1 = deque(maxlen=1000)
-    scores_of_team_2 = deque(maxlen=1000)
     
     agent_1 = Agent(opt.gamma, opt.lr_actor, opt.lr_critic, input_dim_actor, input_dim_critic, num_agents, max_agents, max_actions,
                     opt.replay_memory_size, opt.batch_size, 'agent_procon_1', opt.load_checkpoint,
@@ -52,6 +50,8 @@ def _test(opt):
             _state_1 = agent_1.get_state_actor()
             BGame.create_board(_state_1[0], _state_1[1], _state_1[2][0], _state_1[3])
         for _game in range(n_games):
+            scores_of_team_1 = deque(maxlen=1000)
+            scores_of_team_2 = deque(maxlen=1000)
             start = time.time()
             agent_1.env.reset()
             agent_2.env.reset()
@@ -62,24 +62,25 @@ def _test(opt):
                 states_1, actions_1, rewards_1, next_states_1 = agent_1.select_action_test(state_1)
                 
                 state_2 = agent_2.get_state_actor()
-                states_2, actions_2, rewards_2, next_states_2 = agent_2.select_action_test(state_2)
+                states_2, actions_2, rewards_2, next_states_2 = agent_2.select_action_test_not_predict(state_2)
+                # actions_2 = [0] * agent_1.num_agents
                 # states_2, actions_2, rewards_2, next_states_2 = \
                 #     agent_2.select_best_actions(state_2) if agent_1.num_agents < 6 else agent_2.select_action_test(state_2)
                 done = agent_1.update_state(states_1, actions_1, rewards_1, next_states_1, actions_2, BGame, opt.show_screen)
                 done = agent_2.update_state(states_2, actions_2, rewards_2, next_states_2, actions_1, BGame, False)
                 if opt.show_screen:
                     pygame.display.update()
+                scores_of_team_1.append(agent_1.env.score_mine)
+                scores_of_team_2.append(agent_1.env.score_opponent)
                 if done:
                     break
+            vizualize(scores_of_team_1, 'Loss_critic_value', 'red')
+            vizualize(scores_of_team_2, 'Loss_actor_value', 'blue')
             end = time.time()
             if opt.show_screen:
                 BGame.restart()
             print("Time: {}". format(end - start))
             print("Score A/B: {}/{}". format(agent_1.env.score_mine, agent_1.env.score_opponent))
-            scores_of_team_1.append(agent_1.env.score_mine)
-            scores_of_team_2.append(agent_1.env.score_opponent)
-            vizualize(scores_of_team_1, 'Loss_critic_value', 'red')
-            vizualize(scores_of_team_2, 'Loss_actor_value', 'blue')
             
         print('Completed episodes')
 

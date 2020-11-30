@@ -1,10 +1,10 @@
-import numpy as np
 import copy
+from math import sqrt, acos, pi
 
 class Environment(object):
 
     def __init__(self, height = 0, width = 0, score_matrix = [[]], agent_coord_1 = [[]],
-                 agent_coord_2 = [[]], coord_treasures = [], coord_walls = [], turns = 0):
+                 agent_coord_2 = [[]], coord_treasures = [], coord_walls = [], turns = 0, conquer_matrix = [[], []]):
         self.width = width
         self.height = height
         self.score_matrix = score_matrix
@@ -17,7 +17,7 @@ class Environment(object):
         self.turns = turns
         self.remaining_turns = turns
         self.actions = [i for i in range(self.num_actions)]
-        self.conquer_matrix = [[], []]
+        self.conquer_matrix = conquer_matrix
         self.agents_matrix = []
         self.treasures_matrix = []
         self.player_1 = 1
@@ -26,8 +26,12 @@ class Environment(object):
         self.treasure_score_2 = 0
         self.score_mine = 0
         self.score_opponent = 0
+        self.max_scr = -1000
+        self.min_scr = 1000
         self.init()
         self.preprocess()
+        self.max_scr = -1000
+        self.min_scr = 1000
         self.data = [agent_coord_1, agent_coord_2, coord_treasures, turns]
             
     def init(self):
@@ -52,6 +56,8 @@ class Environment(object):
         if self.turns == 0:
             return
         
+        load = (len(self.conquer_matrix[0]) > 0)
+        
         for i in range(20):
             arr1 = [0] * 20
             arr2 = [0] * 20
@@ -60,16 +66,23 @@ class Environment(object):
                 
             self.agents_matrix.append(arr1)
             self.treasures_matrix.append(arr2)
-            self.conquer_matrix[0].append(arr3)
-            self.conquer_matrix[1].append(arr4)
+            if not load:
+                self.conquer_matrix[0].append(arr3)
+                self.conquer_matrix[1].append(arr4)
+            for j in range(20):
+                if(self.score_matrix[i][j] > -100):
+                    self.max_scr = max(self.max_scr, self.score_matrix[i][j])
+                    self.min_scr = min(self.min_scr, self.score_matrix[i][j])
             
         for i in range(self.num_agents):
             x, y = self.agent_coord_1[i]
             self.agents_matrix[x][y] = i + 1
-            self.conquer_matrix[0][x][y] = 1
+            if not load:
+                self.conquer_matrix[0][x][y] = 1
             x, y = self.agent_coord_2[i]
             self.agents_matrix[x][y] = - i - 1
-            self.conquer_matrix[1][x][y] = 1
+            if not load:
+                self.conquer_matrix[1][x][y] = 1
             
         for coord in self.coord_treasures:
             self.treasures_matrix[coord[0]][coord[1]] = coord[2]
@@ -77,14 +90,14 @@ class Environment(object):
     def get_act(act):
         switcher = {
                 (0, 0): 0,
-                (-1, 0): 1,
-                (-1, 1): 2,
+                (1, 0): 1,
+                (1, 1): 2,
                 (0, 1): 3,
-                (1, 1): 4,
-                (1, 0): 5,
-                (1, -1): 6,
+                (-1, 1): 4,
+                (-1, 0): 5,
+                (-1, -1): 6,
                 (0, -1): 7,
-                (-1, -1): 8,
+                (1, -1): 8,
             }
         return switcher.get(act, "nothing")
     
@@ -149,9 +162,10 @@ class Environment(object):
                 if(treasures_matrix[i][j] > 0):
                     if(conquer_matrix[0][i][j] == 1):
                         treasure_score_1 += treasures_matrix[i][j]
+                        treasures_matrix[i][j] = 0
                     if(conquer_matrix[1][i][j] == 1):
                         treasure_score_2 += treasures_matrix[i][j]
-                    treasures_matrix[i][j] = 0
+                        treasures_matrix[i][j] = 0
         score_area_A = self.compute_score_area(state, 0)
         score_area_B = self.compute_score_area(state, 1)
             
@@ -171,8 +185,8 @@ class Environment(object):
     def next_action(self, x, y, act):
         def action(x):
             switcher = {
-                0: [0, 0], 1: [-1, 0], 2: [-1, 1], 3: [0, -1],
-                4: [1, 1], 5: [1, 0], 6: [1, -1], 7: [0, -1], 8: [-1, -1]
+                0: [0, 0], 1: [1, 0], 2: [1, 1], 3: [0, 1],
+                4: [-1, 1], 5: [-1, 0], 6: [-1, -1], 7: [0, -1], 8: [1, -1]
             }
             return switcher.get(x, [0, 0])
         _action = action(act)
@@ -189,13 +203,36 @@ class Environment(object):
         
         return agent_matrix
     
-    def predict_scores(self, x, y, state):
+    def angle(self, a1, b1, a2, b2):
+        fi = acos((a1 * a2 + b1 * b2) / (sqrt(a1*a1 + b1*b1) * (sqrt(a2*a2 + b2*b2))))
+        return fi
+    
+    def check(self, x0, y0, x, y, act):
+        
+        def action(x):
+            switcher = {
+                0: [0, 0], 1: [1, 0], 2: [1, 1], 3: [0, 1],
+                4: [-1, 1], 5: [-1, 0], 6: [-1, -1], 7: [0, -1], 8: [1, -1]
+            }
+            return switcher.get(x, [0, 0])
+        
+        a1, b1 = action(act)
+        a2, b2 = x - x0, y - y0
+        if abs(self.angle(a1, b1, a2, b2)) - 0.0001 <= pi / 4:
+            return True
+        return False
+        
+        
+    
+    def predict_scores(self, x, y, state, predict, act):
         score_matrix, agents_matrix, conquer_matrix, treasures_matrix = state
         score = 0
-        discount = 0.025
-        p_1 = 3
-        p_2 = 2
-        for i in range(1, 10):
+        discount = 0.0125
+        p_1 = 2
+        p_2 = 1
+        if predict is False:
+            discount = 0.07
+        for i in range(1, min(7, self.remaining_turns)):
             for j in range(max(0, x - i), min(self.height, x + i + 1)):
                 # if j < 0 or j > self.height or k < 0 or k > self.width:
                 #     continue
@@ -204,26 +241,32 @@ class Environment(object):
                         _sc = treasures_matrix[j][y - i] ** p_1
                         if(conquer_matrix[0][j][y - i] != 1):
                             _sc += (score_matrix[j][y - i] ** p_2)
-                        score += _sc * (discount**i)
+                        if act == 0 or self.check(x, y, j, y - i, act):
+                            score += _sc * discount
                 if y + i < self.width:
                     if score_matrix[j][y + i] > -100: 
                         _sc = treasures_matrix[j][y + i] ** p_1
                         if(conquer_matrix[0][j][y + i] != 1):
                             _sc += (score_matrix[j][y + i] ** p_2)
-                        score += _sc * (discount**i)
+                        score += _sc * discount
+                        if act == 0 or self.check(x, y, j, y + i, act):
+                            score += _sc * discount
             for k in range(max(0, y - i), min(self.height, y + i + 1)):
                 if x - i >= 0:
                     if score_matrix[x - i][k] > -100: 
                         _sc = treasures_matrix[x - i][k] ** p_1
                         if(conquer_matrix[0][x - i][k] != 1):
                             _sc += (score_matrix[x - i][k] ** p_2)
-                        score += _sc * (discount**i)
+                        if act == 0 or self.check(x, y, x - i, k, act):
+                            score += _sc * discount
                 if x + i < self.width:
                     if score_matrix[x + i][k] > -100: 
                         _sc = treasures_matrix[x + i][k] ** p_1
                         if(conquer_matrix[0][x + i][k] != 1):
                             _sc += (score_matrix[x + i][k] ** p_2)
-                        score += _sc * (discount**i)
+                        if act == 0 or self.check(x, y, x + i, k, act):
+                            score += _sc * discount
+            discount *= 0.5
         return score
     
     def fit_action(self, agent_id, state, act, agent_coord_1, agent_coord_2, predict = True):
@@ -233,6 +276,8 @@ class Environment(object):
         _x, _y = new_coord
         aux_score = 0
         if _x >= 0 and _x < self.height and _y >= 0 and _y < self.width and score_matrix[_x][_y] > -100:
+            aux_score += (treasures_matrix[_x][_y] + score_matrix[_x][_y]) * 0.4
+            aux_score += self.predict_scores(_x, _y, state, predict, act)
             if agents_matrix[_x][_y] == 0:
                 if conquer_matrix[1][_x][_y] == 0:
                     agents_matrix[_x][_y] = agent_id + 1
@@ -240,14 +285,14 @@ class Environment(object):
                     conquer_matrix[0][_x][_y] = 1
                     agent_coord_1[agent_id][0] = _x
                     agent_coord_1[agent_id][1] = _y
-                    aux_score += 2
-                    aux_score += treasures_matrix[_x][_y] * 2
+                    aux_score += 3
                 else:
                     conquer_matrix[1][_x][_y] = 0
-        
+        else:
+            aux_score -= 5
         state = [score_matrix, agents_matrix, conquer_matrix, treasures_matrix]
-        aux_score += self.predict_scores(_x, _y, state)
         score_1, score_2, treasures_score_1, treasures_score_2 = self.compute_score(state)
+        # print(aux_score, score_1 + treasures_score_1 - score_2 - treasures_score_2)
         if(predict is False):
             aux_score = 0
         return state, agent_coord_1, score_1 + treasures_score_1 - score_2 - treasures_score_2 + aux_score
@@ -470,14 +515,11 @@ class Environment(object):
             self.agent_coord_1[i] = [new_coord_A[i][0], new_coord_A[i][1]]
             self.agent_coord_2[i] = [new_coord_B[i][0], new_coord_B[i][1]]
             
-        
         state = [self.score_matrix, self.agents_matrix, self.conquer_matrix, self.treasures_matrix]
         score_A, score_B, treasure_score_1, treasure_score_2 = self.compute_score(state)
         self.treasure_score_1 += treasure_score_1
         self.treasure_score_2 += treasure_score_2
         
-        if(change):
-            BGame.save_score(score_A, score_B, self.remaining_turns)
         if(change):
             BGame.show_score()
         
@@ -486,6 +528,9 @@ class Environment(object):
         
         reward = self.score_mine - old_score - punish
         self.remaining_turns -= 1
+        
+        if(change):
+            BGame.save_score(self.score_mine, self.score_opponent, self.remaining_turns)
         
         terminal = (self.remaining_turns == 0)
             
