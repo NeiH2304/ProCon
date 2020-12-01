@@ -37,11 +37,7 @@ class BoardGame():
             self.player_1 = 1
             self.player_2 = -1
             self.load_image()
-            self.screen = pygame.display.set_mode( (int(self.WIDTH * 1.4), self.HEIGHT) )  
             pygame.display.set_caption( 'ProCon-2020' ) 
-            self.screen.fill( BG_COLOR )
-            self.screen.blit(self.background_img, self.coord(20, 0))
-            self.draw_lines()
 
         
     def load_image(self):
@@ -62,16 +58,23 @@ class BoardGame():
     def coord(self, x, y):
         return x * self.SQUARE_SIZE, y * self.SQUARE_SIZE
     
-    def create_board(self, score_matrix, agents_matrix, conquer_matrix, treasures_matrix): 
+    def create_board(self, h, w, score_matrix, agents_matrix, conquer_matrix, treasures_matrix): 
         self.score_matrix = score_matrix
         self.agents_matrix = agents_matrix
         self.treasures_matrix = treasures_matrix
         self.conquer_matrix = conquer_matrix
         self.score_A = 0
         self.score_B = 0
-        m, n = len(self.score_matrix), len(self.score_matrix[0])
-        for i in range(m):
-            for j in range(n):
+        self.height = h * self.SQUARE_SIZE
+        self.h = h
+        self.w = w
+        self.width = w * self.SQUARE_SIZE
+        self.screen = pygame.display.set_mode( (int(self.height + 8 * self.SQUARE_SIZE), self.width) )  
+        self.screen.fill( BG_COLOR )
+        self.draw_lines()
+        self.screen.blit(self.background_img, self.coord(h, 0))
+        for i in range(h):
+            for j in range(w):
                 if(self.conquer_matrix[i][j] == self.player_1):
                     self.draw_squares(i, j, 1)
                     
@@ -85,9 +88,9 @@ class BoardGame():
                 if self.treasures_matrix[i][j] > 0:
                     self.show_treasure_value(self.treasures_matrix[i][j], i, j)
                 if self.agents_matrix[i][j] > 0 :
-                    self.draw_agent(i, j, 1)
+                    self.reset_square(i, j, 1)
                 if(self.agents_matrix[i][j] < 0):
-                    self.draw_agent(i, j, self.player_2)
+                    self.reset_square(i, j, self.player_2)
                     
         self.show_score()
         pygame.display.update()
@@ -98,8 +101,6 @@ class BoardGame():
         self.turns = turns
 
     def start(self):
-                
-        self.draw_lines()
         game_over = False
         # -------
         
@@ -120,22 +121,22 @@ class BoardGame():
             pygame.display.update()
             
     def show_score(self):
-        self.screen.blit(self.table_img, self.coord(19, 5))
+        self.screen.blit(self.table_img, self.coord(self.h - 1, -1))
         
         myFont = pygame.font.SysFont("Times New Roman", 30)
         
         color = (255, 178, 21)
         
-        SA = myFont.render("Player     : " + str(self.score_A), 1, color)
-        SB = myFont.render("Player     : " + str(self.score_B), 1, color)
+        SA = myFont.render("    : " + str(self.score_A), 1, color)
+        SB = myFont.render("    : " + str(self.score_B), 1, color)
         STurns = myFont.render("Turns: " + str(self.turns), 1, color)
         
     
-        self.screen.blit(SA, self.coord(21, 8))
-        self.screen.blit(SB, self.coord(21, 9))
-        self.screen.blit(STurns, self.coord(21, 10))
-        self.screen.blit(self.agent_A_img, (915, -5 + 8 * 40))
-        self.screen.blit(self.agent_B_img, (915, -5 + 9 * 40))
+        self.screen.blit(SA, self.coord(self.h + 1, 2))
+        self.screen.blit(SB, self.coord(self.h + 1, 3))
+        self.screen.blit(STurns, self.coord(self.h + 1, 4))
+        self.screen.blit(self.agent_A_img, (self.height + 30, -5 + 2 * self.SQUARE_SIZE))
+        self.screen.blit(self.agent_B_img, (self.height + 30, -5 + 3 * self.SQUARE_SIZE))
     
     def show_value(self, value, x, y):
         
@@ -143,17 +144,17 @@ class BoardGame():
             self.draw_wall(x, y)
             return
         
-        myFont = pygame.font.SysFont("Times New Roman", 27)
+        myFont = pygame.font.SysFont("Times New Roman", 20)
         
-        pos = 0
+        pos = 5
         if value >= 0 and value < 10:
             pos = 15
         elif value > 10 or value > -10:
-            pos = 8
+            pos = 10
         
         value = myFont.render(str(value), 1, (0, 0, 0))
         
-        self.screen.blit(value, (x * self.SQUARE_SIZE + pos, y * self.SQUARE_SIZE + 5))
+        self.screen.blit(value, (x * self.SQUARE_SIZE + pos, y * self.SQUARE_SIZE + 8))
         
     def show_index_agent(self, x, y, order):
         
@@ -185,11 +186,12 @@ class BoardGame():
         
     
     def draw_lines(self):
-        for i in range(21):
+        for i in range(self.width):
             pygame.draw.line(self.screen, LINE_COLOR, (0, i * self.SQUARE_SIZE), 
-                             (self.WIDTH, i * self.SQUARE_SIZE), self.LINE_WIDTH )
+                              (self.height, i * self.SQUARE_SIZE), self.LINE_WIDTH )
+        for i in range(self.height):
             pygame.draw.line(self.screen, LINE_COLOR, (i * self.SQUARE_SIZE, 0),
-                             (i * self.SQUARE_SIZE, self.HEIGHT), self.LINE_WIDTH )
+                             (i * self.SQUARE_SIZE, self.width), self.LINE_WIDTH )
     
     def _draw_squares(self, x1, y1, x2, y2, player):
         color = self.color_A if player >= 1 else self.color_B
@@ -226,7 +228,7 @@ class BoardGame():
             self.show_value(self.score_matrix[x][y], x, y)
         
     def restart(self):
-        # self.screen.fill( BG_COLOR )
+        self.screen.fill( BG_COLOR )
         # self.screen.blit(self.background_img, self.coord(20, 0))
         # self.draw_lines()
         for i in range(20):

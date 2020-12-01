@@ -36,9 +36,10 @@ def _test(opt):
     #     agent_2.load_models(0)
     for _ep in range(opt.n_epochs):
         '''' Read input state '''
-        map_id = random.randint(0, n_maps - 1)
+        map_id = random.randint(0, n_maps - 1) 
+        # map_id = 959
         _map = dcopy(data[map_id])
-        print('Training_epochs: {} -- map_id: {}'.format(_ep + 1, map_id))
+        print('Testing -- map_id: {}'.format(map_id))
         h, w, score_matrix, coord_agens_1, coord_agens_2,\
         coord_treasures, coord_walls, turns = [infor for infor in _map]
         agent_1.set_environment(Environment(h, w, score_matrix, coord_agens_1,
@@ -48,7 +49,7 @@ def _test(opt):
         
         if opt.show_screen:
             _state_1 = agent_1.get_state_actor()
-            BGame.create_board(_state_1[0], _state_1[1], _state_1[2][0], _state_1[3])
+            BGame.create_board(h, w, _state_1[0], _state_1[1], _state_1[2][0], _state_1[3])
         for _game in range(n_games):
             scores_of_team_1 = deque(maxlen=1000)
             scores_of_team_2 = deque(maxlen=1000)
@@ -63,9 +64,6 @@ def _test(opt):
                 
                 state_2 = agent_2.get_state_actor()
                 states_2, actions_2, rewards_2, next_states_2 = agent_2.select_action_test_not_predict(state_2)
-                # actions_2 = [0] * agent_1.num_agents
-                # states_2, actions_2, rewards_2, next_states_2 = \
-                #     agent_2.select_best_actions(state_2) if agent_1.num_agents < 6 else agent_2.select_action_test(state_2)
                 done = agent_1.update_state(states_1, actions_1, rewards_1, next_states_1, actions_2, BGame, opt.show_screen)
                 done = agent_2.update_state(states_2, actions_2, rewards_2, next_states_2, actions_1, BGame, False)
                 if opt.show_screen:
@@ -74,6 +72,8 @@ def _test(opt):
                 scores_of_team_2.append(agent_1.env.score_opponent)
                 if done:
                     break
+                for i in range(10000000):
+                    a = 1
             vizualize(scores_of_team_1, 'Loss_critic_value', 'red')
             vizualize(scores_of_team_2, 'Loss_actor_value', 'blue')
             end = time.time()
