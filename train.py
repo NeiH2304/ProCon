@@ -57,7 +57,7 @@ def train(opt):
         
         if opt.show_screen:
             _state_1 = agent_1.get_state_actor()
-            BGame.create_board(_state_1[0], _state_1[1], _state_1[2][0], _state_1[3])
+            BGame.create_board(h, w, _state_1[0], _state_1[1], _state_1[2][0], _state_1[3])
         for _game in range(n_games):
         
             file_name = 'Output_File/out_file_' + '1' + '.txt'
@@ -68,7 +68,7 @@ def train(opt):
             start = time.time()
             
             for _iter in count(): 
-                epsilon *= opt.discount
+                # epsilon *= opt.discount
                 state_1 = agent_1.get_state_actor()
                 states_1, actions_1, rewards_1, next_states_1 = agent_1.select_action(state_1, epsilon)
                 

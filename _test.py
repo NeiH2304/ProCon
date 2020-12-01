@@ -72,8 +72,8 @@ def _test(opt):
                 scores_of_team_2.append(agent_1.env.score_opponent)
                 if done:
                     break
-                for i in range(10000000):
-                    a = 1
+                    # for i in range(10000000):
+                    #     a = 1
             vizualize(scores_of_team_1, 'Loss_critic_value', 'red')
             vizualize(scores_of_team_2, 'Loss_actor_value', 'blue')
             end = time.time()
