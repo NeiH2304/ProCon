@@ -311,7 +311,7 @@ class Agent():
         state = [state[0], state[1], [state[2], state[3]], state[4]]
         agent_coord_1 = copy.deepcopy(self.env.agent_coord_1)
         agent_coord_2 = copy.deepcopy(self.env.agent_coord_2)
-        init_score = self.env.score_mine
+        init_score = self.env.score_mine - self.env.score_opponent
         rewards = []
         states = []
         next_states = []
