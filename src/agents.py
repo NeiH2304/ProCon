@@ -328,7 +328,7 @@ class Agent():
                 _state = flatten(_state)
                 act = self.get_exploration_action(np.array(_state, dtype=np.float32), i)
                 
-            state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2, False)
+            state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2)
             rewards.append(score - init_score)
             actions.append(act)
             next_states.append(state)
@@ -416,14 +416,14 @@ class Agent():
         for i in range(self.num_agents):
             self.target_actors[i].load_state_dict(
                 torch.load('./Models/' + str(episode) + '_target_actor' + str(i) + '.pt', map_location = self.device))
-            self.target_critics[i].load_state_dict(
-                torch.load('./Models/' + str(episode) + '_target_critic' + str(i) + '.pt', map_location = self.device))
+            # self.target_critics[i].load_state_dict(
+            #     torch.load('./Models/' + str(episode) + '_target_critic' + str(i) + '.pt', map_location = self.device))
             self.actors[i].load_state_dict(
                 torch.load('./Models/' + str(episode) + '_actor' + str(i) + '.pt', map_location = self.device))
-            self.critics[i].load_state_dict(
-                torch.load('./Models/' + str(episode) + '_critic' + str(i) + '.pt', map_location = self.device))
+            # self.critics[i].load_state_dict(
+            #     torch.load('./Models/' + str(episode) + '_critic' + str(i) + '.pt', map_location = self.device))
             utils.hard_update(self.target_actors[i], self.actors[i])
-            utils.hard_update(self.target_critics[i], self.critics[i])
+            # utils.hard_update(self.target_critics[i], self.critics[i])
         print('Models loaded succesfully')
 
             

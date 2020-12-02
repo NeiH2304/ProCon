@@ -26,7 +26,7 @@ def get_args():
     parser.add_argument("--num_iters", type=int, default=20000)
     parser.add_argument("--replay_memory_size", type=int, default=500,
                         help="Number of epoches between testing phases")
-    parser.add_argument("--n_games", type=str, default=1)
+    parser.add_argument("--n_games", type=str, default=20)
     parser.add_argument("--n_maps", type=str, default=1000)
     parser.add_argument("--n_epochs", type=str, default=1000)
     parser.add_argument("--log_path", type=str, default="tensorboard")

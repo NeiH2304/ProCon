@@ -291,7 +291,7 @@ class Environment(object):
                 else:
                     conquer_matrix[1][_x][_y] = 0
         else:
-            aux_score -= 5
+            aux_score -= 10
         state = [score_matrix, agents_matrix, conquer_matrix, treasures_matrix]
         score_1, score_2, treasures_score_1, treasures_score_2 = self.compute_score(state)
         # print(aux_score, score_1 + treasures_score_1 - score_2 - treasures_score_2)
