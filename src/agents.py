@@ -1,4 +1,4 @@
-            #!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Thu Nov  5 09:45:45 2020
@@ -18,6 +18,7 @@ import copy
 from torch.autograd import Variable
 import torch.nn.functional as F
 from itertools import count, permutations, product
+from sklearn.utils import shuffle
 
 class Agent():
     def __init__(self, gamma, lr_a, lr_c, state_dim_actor, state_dim_critic, num_agents, num_agent_lim, action_dim,
@@ -108,7 +109,7 @@ class Agent():
             pre_acts = []
             for j in range(len(ns)):
                 state = ns[j]
-                reward = torch.max(self.target_actors[i](torch.from_numpy(
+                reward = torch.max(self.actors[i](torch.from_numpy(
                     np.array([state])).to(self.device))).to('cpu').data.numpy()
                 # print(reward)
                 reward_predict.append(reward)
@@ -142,14 +143,14 @@ class Agent():
             loss_actor.backward()
             self.actor_optimizers[i].step()
             
-            utils.soft_update(self.target_actors[i], self.actors[i], self.tau)
+            # utils.soft_update(self.target_actors[i], self.actors[i], self.tau)
             self.actor_loss_value = loss_actor.to('cpu').data.numpy()
             # for param in self.actors[i].parameters():
             #     print(param.data)
         self.iter += 1
         
-    def select_action_test(self, state):
-        actions = []
+    def select_action_smart(self, state):
+        actions = [0] * self.num_agents
         state = copy.deepcopy(state)
         state = np.reshape(flatten(state), (5, 20, 20))
         state = [state[0], state[1], [state[2], state[3]], state[4]]
@@ -159,35 +160,40 @@ class Agent():
         rewards = []
         states = []
         next_states = []
-        
+        order = shuffle(range(self.num_agents))
         for i in range(self.num_agents):
+            agent = order[i]
             _state = state
-            _state[1] = self.env.get_agent_state(_state[1], i)
+            _state[1] = self.env.get_agent_state(_state[1], agent)
             _state = flatten(_state)
             states.append(state)
             act = 0
             scores = [0] * 9
             mn = 1000
             mx = -1000
+            valid_states = []
             for act in range(9):
                 _state, _agent_coord_1, _agent_coord_2 = copy.deepcopy([state, agent_coord_1, agent_coord_2])
-                _state, _agent_coord, _score = self.env.fit_action(i, _state, act, _agent_coord_1, _agent_coord_2)
+                valid, _state, _agent_coord, _score = self.env.fit_action(agent, _state, act, _agent_coord_1, _agent_coord_2)
                 scores[act] = _score - init_score
                 mn = min(mn, _score - init_score)
                 mx = max(mx, _score - init_score)
-                # print(_score, init_score)
+                valid_states.append(valid)
             scores[0] -= 2
             for j in range(len(scores)):
                 scores[j] = (scores[j] - mn) / (mx - mn + 0.0001)
-                scores[j] **= 5
+                scores[j] **= 4
             sum = np.sum(scores) + 0.0001
             for j in range(len(scores)):
                 scores[j] = scores[j] / sum
+                if(valid_states[j] is False):
+                    scores[j] = 0
+            scores[0] = 0
             act = choices(range(9), scores)[0]
-            state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2)
+            valid, state, agent_coord, score = self.env.fit_action(agent, state, act, agent_coord_1, agent_coord_2)
             rewards.append(score - init_score)
             init_score += score
-            actions.append(act)
+            actions[agent] = act
             next_states.append(state)
             
         return states, actions, rewards, next_states
@@ -213,20 +219,24 @@ class Agent():
             scores = [0] * 9
             mn = 1000
             mx = -1000
+            valid_states = []
             for act in range(9):
                 _state, _agent_coord_1, _agent_coord_2 = copy.deepcopy([state, agent_coord_1, agent_coord_2])
-                _state, _agent_coord, _score = self.env.fit_action(i, _state, act, _agent_coord_1, _agent_coord_2, False)
+                valid, _state, _agent_coord, _score = self.env.fit_action(i, _state, act, _agent_coord_1, _agent_coord_2, False)
                 scores[act] = _score - init_score
                 mn = min(mn, _score - init_score)
                 mx = max(mx, _score - init_score)
+                valid_states.append(valid)
             for j in range(len(scores)):
                 scores[j] = (scores[j] - mn) / (mx - mn + 0.0001)
                 scores[j] **= 3
             sum = np.sum(scores) + 0.0001
             for j in range(len(scores)):
                 scores[j] = scores[j] / sum
+                if(valid_states[j] is False):
+                    scores[j] = 0
             act = choices(range(9), scores)[0]
-            state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2)
+            valid, state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2)
             rewards.append(score - init_score)
             init_score += score
             actions.append(act)
@@ -328,7 +338,7 @@ class Agent():
                 _state = flatten(_state)
                 act = self.get_exploration_action(np.array(_state, dtype=np.float32), i)
                 
-            state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2)
+            valid, state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2)
             rewards.append(score - init_score)
             actions.append(act)
             next_states.append(state)

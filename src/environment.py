@@ -33,6 +33,7 @@ class Environment(object):
         self.max_scr = -1000
         self.min_scr = 1000
         self.data = [agent_coord_1, agent_coord_2, coord_treasures, turns]
+        self.precoord = copy.deepcopy(agent_coord_1)
             
     def init(self):
             
@@ -73,7 +74,6 @@ class Environment(object):
                 if(self.score_matrix[i][j] > -100):
                     self.max_scr = max(self.max_scr, self.score_matrix[i][j])
                     self.min_scr = min(self.min_scr, self.score_matrix[i][j])
-            
         for i in range(self.num_agents):
             x, y = self.agent_coord_1[i]
             self.agents_matrix[x][y] = i + 1
@@ -102,11 +102,13 @@ class Environment(object):
         return switcher.get(act, "nothing")
     
     def compute_score_area(self, state, player):
+        area_matrix = []
         score_matrix, agent_matrix, conquer_matrix, treasures_matrix = state
         visit = []
         score = 0
         for i in range(20):
             visit.append([0] * 20)
+            area_matrix.append([0] * 20)
             for j in range(20):
                 visit[i][j] = conquer_matrix[player][i][j]
             
@@ -119,10 +121,13 @@ class Environment(object):
         
         def dfs(x, y):
             visit[x][y] = 1
+            area_matrix[x][y] = 1
             temp_score = abs(score_matrix[x][y])
             if(score_matrix[x][y] < -100):
+                area_matrix[x][y] = 0
                 temp_score = 0
             if is_border(x, y):
+                area_matrix[x][y] = 0
                 return -1
             dx = [1, -1, 0, 0]
             dy = [0, 0, -1, 1]
@@ -135,6 +140,7 @@ class Environment(object):
                    else:
                        temp_score += _score
             if ok == False:
+                area_matrix[x][y] = 0
                 return -1
             return temp_score
         
@@ -145,7 +151,7 @@ class Environment(object):
                     temp = dfs(i, j)
                     score += max(0, temp)
                     
-        return score
+        return score, area_matrix
         
     def compute_score(self, state):
         score_matrix, agent_matrix, conquer_matrix, treasures_matrix = state
@@ -166,12 +172,12 @@ class Environment(object):
                     if(conquer_matrix[1][i][j] == 1):
                         treasure_score_2 += treasures_matrix[i][j]
                         treasures_matrix[i][j] = 0
-        score_area_A = self.compute_score_area(state, 0)
-        score_area_B = self.compute_score_area(state, 1)
+        score_area_A, area_matrix_1 = self.compute_score_area(state, 0)
+        score_area_B, area_matrix_2 = self.compute_score_area(state, 1)
             
         score_A = score_title_A + score_area_A
         score_B = score_title_B + score_area_B
-        return score_A, score_B, treasure_score_1, treasure_score_2
+        return score_A, score_B, treasure_score_1, treasure_score_2, area_matrix_1
     
     
     def check_next_action(self, _act, id_agent, agent_coord):
@@ -218,57 +224,66 @@ class Environment(object):
         
         a1, b1 = action(act)
         a2, b2 = x - x0, y - y0
-        if abs(self.angle(a1, b1, a2, b2)) - 0.0001 <= pi / 2:
+        if abs(self.angle(a1, b1, a2, b2)) - 0.0001 <= pi / 3:
             return True
         return False
         
         
     
-    def predict_scores(self, x, y, state, predict, act):
+    def predict_scores(self, x, y, state, predict, act, area_matrix):
         score_matrix, agents_matrix, conquer_matrix, treasures_matrix = state
         score = 0
-        discount = 0.03
-        reduce_negative = 0.2
-        p_1 = 1
+        discount = 0.02
+        reduce_negative = 0.02
+        p_1 = 1.3
         p_2 = 1
-        if predict is False:
-            discount = 0.07
-        for i in range(1, min(5, self.remaining_turns)):
+        for i in range(1, min(8, self.remaining_turns)):
             for j in range(max(0, x - i), min(self.height, x + i + 1)):
                 # if j < 0 or j > self.height or k < 0 or k > self.width:
                 #     continue
-                if y - i >= 0:
-                    if score_matrix[j][y - i] > -100: 
-                        _sc = treasures_matrix[j][y - i] ** p_1
-                        if(conquer_matrix[0][j][y - i] != 1):
-                            _sc += (max(reduce_negative * score_matrix[j][y - i], score_matrix[j][y - i]) ** p_2)
-                        if act == 0 or self.check(x, y, j, y - i, act):
-                            score += _sc * discount
-                if y + i < self.width:
-                    if score_matrix[j][y + i] > -100: 
-                        _sc = treasures_matrix[j][y + i] ** p_1
-                        if(conquer_matrix[0][j][y + i] != 1):
-                            _sc += (max(reduce_negative * score_matrix[j][y + i], score_matrix[j][y + i]) ** p_2)
-                        score += _sc * discount
-                        if act == 0 or self.check(x, y, j, y + i, act):
-                            score += _sc * discount
+                new_x = j
+                new_y = y - i
+                if new_y >= 0:
+                    if score_matrix[new_x][new_y] > -100: 
+                        _sc = treasures_matrix[new_x][new_y] ** p_1
+                        if(conquer_matrix[0][new_x][new_y] != 1):
+                            _sc += (max(reduce_negative * score_matrix[new_x][new_y], score_matrix[new_x][new_y]) ** p_2)
+                        if act == 0 or self.check(x, y, new_x, new_y, act):
+                            if area_matrix[new_x][new_y] == 0:
+                                score += _sc * discount
+                new_x = j
+                new_y = y + i
+                if new_y  < self.width:
+                    if score_matrix[new_x][new_y] > -100: 
+                        _sc = treasures_matrix[new_x][new_y] ** p_1
+                        if(conquer_matrix[0][new_x][new_y] != 1):
+                            _sc += (max(reduce_negative * score_matrix[new_x][new_y], score_matrix[new_x][new_y]) ** p_2)
+                        if act == 0 or self.check(x, y, new_x, new_y, act):
+                            if area_matrix[new_x][new_y] == 0:
+                                score += _sc * discount
             for k in range(max(0, y - i), min(self.height, y + i + 1)):
-                if x - i >= 0:
-                    if score_matrix[x - i][k] > -100: 
-                        _sc = treasures_matrix[x - i][k] ** p_1
-                        if(conquer_matrix[0][x - i][k] != 1):
-                            _sc += (max(reduce_negative * score_matrix[x - i][k], score_matrix[x - i][k]) ** p_2)
-                        if act == 0 or self.check(x, y, x - i, k, act):
-                            score += _sc * discount
-                if x + i < self.width:
-                    if score_matrix[x + i][k] > -100: 
-                        _sc = treasures_matrix[x + i][k] ** p_1
-                        if(conquer_matrix[0][x + i][k] != 1):
-                            _sc += (max(reduce_negative * score_matrix[x + i][k], score_matrix[x + i][k]) ** p_2)
-                        if act == 0 or self.check(x, y, x + i, k, act):
-                            score += _sc * discount
+                new_x = x - i
+                new_y = k
+                if new_x >= 0:
+                    if score_matrix[new_x][new_y] > -100: 
+                        _sc = treasures_matrix[new_x][new_y] ** p_1
+                        if(conquer_matrix[0][new_x][new_y] != 1):
+                            _sc += (max(reduce_negative * score_matrix[new_x][new_y], score_matrix[new_x][new_y]) ** p_2)
+                        if act == 0 or self.check(x, y, new_x, new_y, act):
+                            if area_matrix[new_x][new_y] == 0:
+                                score += _sc * discount
+                new_x = x + i
+                new_y = k
+                if new_x < self.height:
+                    if score_matrix[new_x][new_y] > -100: 
+                        _sc = treasures_matrix[new_x][new_y] ** p_1
+                        if(conquer_matrix[0][new_x][new_y] != 1):
+                            _sc += (max(reduce_negative * score_matrix[new_x][new_y], score_matrix[new_x][new_y]) ** p_2)
+                        if act == 0 or self.check(x, y, new_x, new_y, act):
+                            if area_matrix[new_x][new_y] == 0:
+                                score += _sc * discount
             discount *= 0.7
-        
+        # print(score)
         return score
     
     def fit_action(self, agent_id, state, act, agent_coord_1, agent_coord_2, predict = True):
@@ -277,9 +292,9 @@ class Environment(object):
         new_coord = (self.next_action(x, y, act))
         _x, _y = new_coord
         aux_score = 0
+        valid = True
         if _x >= 0 and _x < self.height and _y >= 0 and _y < self.width and score_matrix[_x][_y] > -100:
-            aux_score += (treasures_matrix[_x][_y] + score_matrix[_x][_y]) * 0.4
-            aux_score += self.predict_scores(_x, _y, state, predict, act)
+            # aux_score += (treasures_matrix[_x][_y] + score_matrix[_x][_y]) * 0.4
             if agents_matrix[_x][_y] == 0:
                 if conquer_matrix[1][_x][_y] == 0:
                     agents_matrix[_x][_y] = agent_id + 1
@@ -287,17 +302,23 @@ class Environment(object):
                     conquer_matrix[0][_x][_y] = 1
                     agent_coord_1[agent_id][0] = _x
                     agent_coord_1[agent_id][1] = _y
-                    aux_score += 3
+                    aux_score += 1
                 else:
                     conquer_matrix[1][_x][_y] = 0
+                    aux_score -= 0.5
+                    # if _x == self.precoord[agent_id][0] and _y == self.precoord[agent_id][1]:
+                    #     aux_score -= 2
         else:
-            aux_score -= 10
+            valid = False
         state = [score_matrix, agents_matrix, conquer_matrix, treasures_matrix]
-        score_1, score_2, treasures_score_1, treasures_score_2 = self.compute_score(state)
+        score_1, score_2, treasures_score_1, treasures_score_2, area_matrix = self.compute_score(state)
+        if valid:
+            aux_score += self.predict_scores(_x, _y, state, predict, act, area_matrix)
         # print(aux_score, score_1 + treasures_score_1 - score_2 - treasures_score_2)
         if(predict is False):
             aux_score = 0
-        return state, agent_coord_1, score_1 + treasures_score_1 - score_2 - treasures_score_2 + aux_score
+        self.precoord = copy.deepcopy(self.agent_coord_1)
+        return valid, state, agent_coord_1, score_1 + treasures_score_1 - score_2 - treasures_score_2 + aux_score
     
     def next_frame(self, actions_1, actions_2, BGame, change):
         
@@ -528,7 +549,7 @@ class Environment(object):
             self.agent_coord_2[i] = [new_coord_B[i][0], new_coord_B[i][1]]
             
         state = [self.score_matrix, self.agents_matrix, self.conquer_matrix, self.treasures_matrix]
-        score_A, score_B, treasure_score_1, treasure_score_2 = self.compute_score(state)
+        score_A, score_B, treasure_score_1, treasure_score_2, area_matrix = self.compute_score(state)
         self.treasure_score_1 += treasure_score_1
         self.treasure_score_2 += treasure_score_2
         

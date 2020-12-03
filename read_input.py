@@ -34,9 +34,9 @@ def read_state(file_name):
             coord = list(map(int, f.readline().split()))
             # print(coord)
             if(j < num_agens):
-                coord_agens_of_team_A.append(coord[1:])
+                coord_agens_of_team_A.append(coord)
             else:
-                coord_agens_of_team_B.append(coord[1:])
+                coord_agens_of_team_B.append(coord)
         
         conquer_matrix_1 = []
         for i in range(h):

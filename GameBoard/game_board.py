@@ -46,7 +46,7 @@ class BoardGame():
         self.agent_B_img = pygame.transform.scale(
             pygame.image.load('GameBoard/images/agent2.png'), (self.SQUARE_SIZE, self.SQUARE_SIZE))
         self.wall_img =  pygame.transform.scale(
-            pygame.image.load('GameBoard/images/wall.png'), (self.SQUARE_SIZE, self.SQUARE_SIZE))
+            pygame.image.load('GameBoard/images/wall.jpg'), (self.SQUARE_SIZE, self.SQUARE_SIZE))
         self.background_img = pygame.transform.scale(
             pygame.image.load('GameBoard/images/background.jpg'), (626, 966))
         self.table_img =  pygame.transform.scale(
@@ -229,11 +229,21 @@ class BoardGame():
         
     def restart(self):
         self.screen.fill( BG_COLOR )
+        self.draw_lines()
+        self.screen.blit(self.background_img, self.coord(self.h, 0))
         # self.screen.blit(self.background_img, self.coord(20, 0))
         # self.draw_lines()
-        for i in range(20):
-            for j in range(20):
-                if self.score_matrix[i][j] > -100:
+        for i in range(self.h):
+            for j in range(self.w):
+                if(self.score_matrix[i][j] < -100):
+                    self.draw_wall(i, j)
+                else:
                     self.reset_square(i, j, 0)
                 if self.treasures_matrix[i][j] > 0:
                     self.show_treasure_value(self.treasures_matrix[i][j], i, j)
+                if self.agents_matrix[i][j] > 0 :
+                    self.reset_square(i, j, 1)
+                if(self.agents_matrix[i][j] < 0):
+                    self.reset_square(i, j, -1)
+                    
+        self.show_score()
