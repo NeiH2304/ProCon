@@ -13,7 +13,7 @@ def get_args():
     parser = argparse.ArgumentParser("""Implementation of Deep Q Network to play Procon""")
     parser.add_argument("--file_name", default = "input.txt")
     parser.add_argument("--type", default = "1")
-    parser.add_argument("--run", type=str, default="interactive")   
+    parser.add_argument("--run", type=str, default="train")   
     parser.add_argument("--image_size", type=int, default=84, help="The common width and height for all images")
     parser.add_argument("--batch_size", type=int, default=64, help="The number of state per batch")
     parser.add_argument("--optimizer", type=str, choices=["sgd", "adam"], default="adam")
@@ -31,7 +31,7 @@ def get_args():
     parser.add_argument("--n_epochs", type=str, default=1000)
     parser.add_argument("--log_path", type=str, default="tensorboard")
     parser.add_argument("--saved_path", type=str, default="trained_models")
-    parser.add_argument("--show_screen", type=str, default=True)
+    parser.add_argument("--show_screen", type=str, default=False)
     parser.add_argument("--load_checkpoint", type=str, default=True)
     parser.add_argument("--saved_checkpoint", type=str, default=True)   
     

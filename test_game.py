@@ -9,6 +9,7 @@ from GameBoard.game_board import BoardGame
 import pygame
 from itertools import count
 from collections import deque
+import copy
 from src.utils import flatten, vizualize
 import time
 
@@ -37,14 +38,16 @@ def _test(opt):
     for _ep in range(opt.n_epochs):
         '''' Read input state '''
         map_id = random.randint(0, n_maps - 1) 
-        map_id = 3
+        # map_id = 3
         _map = dcopy(data[map_id])
         print('Testing -- map_id: {}'.format(map_id))
         h, w, score_matrix, coord_agens_1, coord_agens_2,\
         coord_treasures, coord_walls, turns = [infor for infor in _map]
         inp = read_state(opt.file_name)
         h, w, score_matrix, coord_treasures, coord_walls, coord_agens_1, coord_agens_2,\
-        conquer_matrix, turns, num_agents = inp
+            conquer_matrix, turns, num_agents = inp
+        coord_agens_1 = [x[1:] for x in coord_agens_1]
+        coord_agens_2 = [x[1:] for x in coord_agens_2]
         agent_1.set_environment(Environment(h, w, score_matrix, coord_agens_1,
                       coord_agens_2, coord_treasures, coord_walls, turns))
         agent_2.set_environment(Environment(h, w, score_matrix, coord_agens_2,
@@ -67,7 +70,7 @@ def _test(opt):
                 
                 state_2 = agent_2.get_state_actor()
                 states_2, actions_2, rewards_2, next_states_2 = agent_2.select_action_test_not_predict(state_2)
-                actions_2 = [0] * agent_2.num_agents
+                # actions_2 = [0] * agent_2.num_agents
                 done = agent_1.update_state(states_1, actions_1, rewards_1, next_states_1, actions_2, BGame, opt.show_screen)
                 done = agent_2.update_state(states_2, actions_2, rewards_2, next_states_2, actions_1, BGame, False)
                 if opt.show_screen:

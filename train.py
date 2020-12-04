@@ -80,7 +80,8 @@ def train(opt):
                 
                 if opt.show_screen:
                     pygame.display.update()
-            
+                
+                print(rewards_1)
                 prob = []
                 for i in range(1):
                     _state = agent_2.get_state_actor()
@@ -94,7 +95,7 @@ def train(opt):
                         prob[i][j] = round(prob[i][j], 4)
                     print(prob[i])  
                 
-                # Loss_critic_value.append(agent_1.critic_loss_value)
+                Loss_critic_value.append(agent_1.critic_loss_value)
                 Loss_actor_value.append(agent_1.actor_loss_value)
                 
                 

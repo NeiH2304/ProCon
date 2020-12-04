@@ -72,7 +72,8 @@ class Agent():
             utils.hard_update(self.target_actors[i], self.actors[i])
             utils.hard_update(self.target_critics[i], self.critics[i])
         self.memories = [ReplayBuffer(mem_size) for i in range(num_agent_lim)]
-        
+            
+            
     def set_environment(self, env):
         self.env = env
         self.num_agents = env.num_agents
@@ -149,6 +150,41 @@ class Agent():
             #     print(param.data)
         self.iter += 1
         
+    def select_action(self, state, epsilon):
+        actions = []
+        state = copy.deepcopy(state)
+        state = np.reshape(flatten(state), (5, 20, 20))
+        state = [state[0], state[1], [state[2], state[3]], state[4]]
+        agent_coord_1 = copy.deepcopy(self.env.agent_coord_1)
+        agent_coord_2 = copy.deepcopy(self.env.agent_coord_2)
+        init_score = self.env.score_mine - self.env.score_opponent
+        rewards = []
+        states = []
+        next_states = []
+        
+        for i in range(self.num_agents):
+            act = None
+            states.append(state)
+            
+            if random() <= epsilon:
+                act = randint(0, self.action_lim - 1)
+            else:
+                _state = state
+                _state[1] = self.env.get_agent_state(_state[1], i)
+                _state = flatten(_state)
+                act = self.get_exploration_action(np.array(_state, dtype=np.float32), i)
+                
+            # _state, _agent_coord_1, _agent_coord_2 = copy.deepcopy([state, agent_coord_1, agent_coord_2])
+            valid, state, agent_coord_1, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2, False)
+            rewards.append(score - init_score)
+            actions.append(act)
+            next_states.append(state)
+            init_score = score
+            
+        self.steps_done += 1
+        return states, actions, rewards, next_states
+                      
+        
     def select_action_smart(self, state):
         actions = [0] * self.num_agents
         state = copy.deepcopy(state)
@@ -179,7 +215,7 @@ class Agent():
                 mn = min(mn, _score - init_score)
                 mx = max(mx, _score - init_score)
                 valid_states.append(valid)
-            scores[0] -= 2
+            # scores[0] -= 2
             for j in range(len(scores)):
                 scores[j] = (scores[j] - mn) / (mx - mn + 0.0001)
                 scores[j] **= 4
@@ -192,7 +228,7 @@ class Agent():
             act = choices(range(9), scores)[0]
             valid, state, agent_coord, score = self.env.fit_action(agent, state, act, agent_coord_1, agent_coord_2)
             rewards.append(score - init_score)
-            init_score += score
+            init_score = score
             actions[agent] = act
             next_states.append(state)
             
@@ -238,7 +274,7 @@ class Agent():
             act = choices(range(9), scores)[0]
             valid, state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2)
             rewards.append(score - init_score)
-            init_score += score
+            init_score = score
             actions.append(act)
             next_states.append(state)
             
@@ -308,46 +344,12 @@ class Agent():
             state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2)
             
             rewards.append(score - init_score)
-            init_score += score
+            init_score = score
             actions.append(act)
             next_states.append(state)
             
         return states, actions, rewards, next_states
     
-    def select_action(self, state, epsilon):
-        actions = []
-        state = copy.deepcopy(state)
-        state = np.reshape(flatten(state), (5, 20, 20))
-        state = [state[0], state[1], [state[2], state[3]], state[4]]
-        agent_coord_1 = copy.deepcopy(self.env.agent_coord_1)
-        agent_coord_2 = copy.deepcopy(self.env.agent_coord_2)
-        init_score = self.env.score_mine - self.env.score_opponent
-        rewards = []
-        states = []
-        next_states = []
-        
-        for i in range(self.num_agents):
-            act = None
-            states.append(state)
-            
-            if random() <= epsilon:
-                act = randint(0, self.action_lim - 1)
-            else:
-                _state = state
-                _state[1] = self.env.get_agent_state(_state[1], i)
-                _state = flatten(_state)
-                act = self.get_exploration_action(np.array(_state, dtype=np.float32), i)
-                
-            valid, state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2)
-            rewards.append(score - init_score)
-            actions.append(act)
-            next_states.append(state)
-            init_score += score
-            
-        self.steps_done += 1
-        
-        return states, actions, rewards, next_states
-                      
     def transform_to_critic_state(self, state):
         state[1] = self.get_state_critic(state[1])
         return state

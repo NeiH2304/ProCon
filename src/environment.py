@@ -74,7 +74,7 @@ class Environment(object):
                 if(self.score_matrix[i][j] > -100):
                     self.max_scr = max(self.max_scr, self.score_matrix[i][j])
                     self.min_scr = min(self.min_scr, self.score_matrix[i][j])
-        for i in range(self.num_agents):
+        for i in range(self.num_agents):    
             x, y = self.agent_coord_1[i]
             self.agents_matrix[x][y] = i + 1
             if not load:
@@ -322,7 +322,7 @@ class Environment(object):
     
     def next_frame(self, actions_1, actions_2, BGame, change):
         
-        point_punish = 50 
+        point_punish = 30 
         punish = 0
         new_coord_A = []
         new_coord_B = []
