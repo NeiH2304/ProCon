@@ -68,20 +68,19 @@ def train(opt):
             start = time.time()
             
             for _iter in count(): 
-                # epsilon *= opt.discount
+                epsilon *= opt.discount
                 state_1 = agent_1.get_state_actor()
                 states_1, actions_1, rewards_1, next_states_1 = agent_1.select_action(state_1, epsilon)
                 
                 state_2 = agent_2.get_state_actor()
                 states_2, actions_2, rewards_2, next_states_2 = agent_2.select_action(state_2, epsilon)
-                # action_agents_2 = [8] * agent_2.num_agents
+                actions_2 = [0] * agent_2.num_agents
                 done = agent_1.learn(states_1, actions_1, rewards_1, next_states_1, actions_2, BGame, opt.show_screen)
                 done = agent_2.learn(states_2, actions_2, rewards_2, next_states_2, actions_1, BGame, False)
                 
                 if opt.show_screen:
                     pygame.display.update()
                 
-                print(rewards_1)
                 prob = []
                 for i in range(1):
                     _state = agent_2.get_state_actor()

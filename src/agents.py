@@ -110,7 +110,7 @@ class Agent():
             pre_acts = []
             for j in range(len(ns)):
                 state = ns[j]
-                reward = torch.max(self.actors[i](torch.from_numpy(
+                reward = torch.max(self.target_actors[i](torch.from_numpy(
                     np.array([state])).to(self.device))).to('cpu').data.numpy()
                 # print(reward)
                 reward_predict.append(reward)
@@ -144,7 +144,7 @@ class Agent():
             loss_actor.backward()
             self.actor_optimizers[i].step()
             
-            # utils.soft_update(self.target_actors[i], self.actors[i], self.tau)
+            utils.soft_update(self.target_actors[i], self.actors[i], self.tau)
             self.actor_loss_value = loss_actor.to('cpu').data.numpy()
             # for param in self.actors[i].parameters():
             #     print(param.data)
@@ -176,7 +176,11 @@ class Agent():
                 
             # _state, _agent_coord_1, _agent_coord_2 = copy.deepcopy([state, agent_coord_1, agent_coord_2])
             valid, state, agent_coord_1, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2, False)
-            rewards.append(score - init_score)
+            punish = 0
+            if valid is False:
+                punish = 20
+            rewards.append(score - init_score - punish)
+            # rewards.append(score - init_score)
             actions.append(act)
             next_states.append(state)
             init_score = score
@@ -273,7 +277,6 @@ class Agent():
                     scores[j] = 0
             act = choices(range(9), scores)[0]
             valid, state, agent_coord, score = self.env.fit_action(i, state, act, agent_coord_1, agent_coord_2)
-            rewards.append(score - init_score)
             init_score = score
             actions.append(act)
             next_states.append(state)

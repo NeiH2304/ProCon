@@ -293,6 +293,7 @@ class Environment(object):
         _x, _y = new_coord
         aux_score = 0
         valid = True
+        punish = 0
         if _x >= 0 and _x < self.height and _y >= 0 and _y < self.width and score_matrix[_x][_y] > -100:
             # aux_score += (treasures_matrix[_x][_y] + score_matrix[_x][_y]) * 0.4
             if agents_matrix[_x][_y] == 0:
@@ -306,6 +307,8 @@ class Environment(object):
                 else:
                     conquer_matrix[1][_x][_y] = 0
                     aux_score -= 0.5
+                    punish += 20
+                    
                     # if _x == self.precoord[agent_id][0] and _y == self.precoord[agent_id][1]:
                     #     aux_score -= 2
         else:
