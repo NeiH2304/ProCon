@@ -58,11 +58,13 @@ class BoardGame():
     def coord(self, x, y):
         return x * self.SQUARE_SIZE, y * self.SQUARE_SIZE
     
-    def create_board(self, h, w, score_matrix, agents_matrix, conquer_matrix, treasures_matrix): 
+    def create_board(self, h, w, state): 
+        score_matrix, agents_matrix, conquer_matrix, treasures_matrix, walls_matrix = state
         self.score_matrix = score_matrix
         self.agents_matrix = agents_matrix
         self.treasures_matrix = treasures_matrix
         self.conquer_matrix = conquer_matrix
+        self.walls_matrix = walls_matrix
         self.score_A = 0
         self.score_B = 0
         self.height = h * self.SQUARE_SIZE
@@ -75,21 +77,21 @@ class BoardGame():
         self.screen.blit(self.background_img, self.coord(h, 0))
         for i in range(h):
             for j in range(w):
-                if(self.conquer_matrix[i][j] == self.player_1):
+                if(self.conquer_matrix[0][i][j] == 1):
                     self.draw_squares(i, j, 1)
                     
-                if(self.conquer_matrix[i][j] == self.player_2):
-                    self.draw_squares(i, j, self.player_2)
+                if(self.conquer_matrix[1][i][j] == 1):
+                    self.draw_squares(i, j, -1)
                     
-                if(self.score_matrix[i][j] < -100):
+                if(self.walls_matrix[i][j] == 1):
                     self.draw_wall(i, j)
                 else:
                     self.reset_square(i, j, 0)
                 if self.treasures_matrix[i][j] > 0:
                     self.show_treasure_value(self.treasures_matrix[i][j], i, j)
-                if self.agents_matrix[i][j] > 0 :
+                if self.agents_matrix[0][i][j] == 1:
                     self.reset_square(i, j, 1)
-                if(self.agents_matrix[i][j] < 0):
+                if(self.agents_matrix[1][i][j] == 1):
                     self.reset_square(i, j, self.player_2)
                     
         self.show_score()

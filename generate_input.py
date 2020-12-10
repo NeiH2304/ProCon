@@ -8,7 +8,7 @@ for i in range(2000):
     n = random.randint(10, 20)
         
     score_matrix = []
-    mx = random.randint(3, 16)
+    mx = random.randint(3, 30)
     matrix = []
     for i in range(m):
         matrix.append([0] * n)

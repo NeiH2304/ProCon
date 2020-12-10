@@ -1,53 +1,42 @@
-import copy
+from copy import deepcopy as copy
 from math import sqrt, acos, pi
 
 class Environment(object):
 
-    def __init__(self, height = 0, width = 0, score_matrix = [[]], agent_coord_1 = [[]],
-                 agent_coord_2 = [[]], coord_treasures = [], coord_walls = [], turns = 0, conquer_matrix = [[], []]):
+    def __init__(self, height = 0, width = 0, score_matrix = [[]], agent_pos_1 = [[]],
+                 agent_pos_2 = [[]], treasures = [], walls = [], turns = 0, conquer_matrix = [[], []]):
+        self.MAX_SIZE = 20
         self.width = width
         self.height = height
         self.score_matrix = score_matrix
-        self.agent_coord_1 = agent_coord_1
-        self.agent_coord_2 = agent_coord_2
-        self.coord_treasures = coord_treasures
-        self.coord_walls = coord_walls
+        self.agents_matrix = [[], []]
+        self.treasures_matrix = []
+        self.conquer_matrix = conquer_matrix
+        self.agent_pos_1 = agent_pos_1
+        self.agent_pos_2 = agent_pos_2
+        self.treasures = treasures
+        self.walls = walls
+        self.walls_matrix = []
         self.num_actions = 9
-        self.num_agents = len(self.agent_coord_1)
+        self.num_agents = len(self.agent_pos_1)
         self.turns = turns
         self.remaining_turns = turns
         self.actions = [i for i in range(self.num_actions)]
-        self.conquer_matrix = conquer_matrix
-        self.agents_matrix = []
-        self.treasures_matrix = []
-        self.player_1 = 1
-        self.player_2 = -1
+        self.player_1 = 0
+        self.player_2 = 1
         self.treasure_score_1 = 0
         self.treasure_score_2 = 0
         self.score_mine = 0
         self.score_opponent = 0
-        self.max_scr = -1000
-        self.min_scr = 1000
-        self.init()
         self.preprocess()
-        self.max_scr = -1000
-        self.min_scr = 1000
-        self.data = [agent_coord_1, agent_coord_2, coord_treasures, turns]
-        self.precoord = copy.deepcopy(agent_coord_1)
-            
-    def init(self):
-            
-        for coord_wall in self.coord_walls:
-            self.score_matrix[coord_wall[0]][coord_wall[1]] = -1000
-        
+        self.data = copy([agent_pos_1, agent_pos_2])
         
     def reset(self):
-        
-        self.agent_coord_1, self.agent_coord_2,\
-                self.coord_treasures, self.turns = copy.deepcopy(self.data)
+        self.agent_pos_1, self.agent_pos_2 = copy(self.data)
         self.remaining_turns = self.turns
-        self.agents_matrix = []
+        self.agents_matrix = [[], []]
         self.treasures_matrix = []
+        self.walls_matrix = []
         self.conquer_matrix = [[], []]
         self.treasure_score_1 = 0
         self.treasure_score_2 = 0
@@ -56,36 +45,37 @@ class Environment(object):
     def preprocess(self):
         if self.turns == 0:
             return
-        
-        load = (len(self.conquer_matrix[0]) > 0)
-        
-        for i in range(20):
-            arr1 = [0] * 20
-            arr2 = [0] * 20
-            arr3 = [0] * 20
-            arr4 = [0] * 20
-                
-            self.agents_matrix.append(arr1)
-            self.treasures_matrix.append(arr2)
-            if not load:
-                self.conquer_matrix[0].append(arr3)
-                self.conquer_matrix[1].append(arr4)
-            for j in range(20):
-                if(self.score_matrix[i][j] > -100):
-                    self.max_scr = max(self.max_scr, self.score_matrix[i][j])
-                    self.min_scr = min(self.min_scr, self.score_matrix[i][j])
-        for i in range(self.num_agents):    
-            x, y = self.agent_coord_1[i]
-            self.agents_matrix[x][y] = i + 1
-            if not load:
-                self.conquer_matrix[0][x][y] = 1
-            x, y = self.agent_coord_2[i]
-            self.agents_matrix[x][y] = - i - 1
-            if not load:
-                self.conquer_matrix[1][x][y] = 1
+    
+        for i in range(self.MAX_SIZE):
+            self.agents_matrix[0].append([0] * self.MAX_SIZE)
+            self.agents_matrix[1].append([0] * self.MAX_SIZE)
+            self.conquer_matrix[0].append([0] * self.MAX_SIZE)
+            self.conquer_matrix[1].append([0] * self.MAX_SIZE)
+            self.treasures_matrix.append([0] * self.MAX_SIZE)
+            self.walls_matrix.append([0] * self.MAX_SIZE)
             
-        for coord in self.coord_treasures:
-            self.treasures_matrix[coord[0]][coord[1]] = coord[2]
+        for i in range(self.num_agents):    
+            x, y = self.agent_pos_1[i]
+            self.agents_matrix[0][x][y] = 1
+            self.conquer_matrix[0][x][y] = 1
+            x, y = self.agent_pos_2[i]
+            self.agents_matrix[1][x][y] = 1
+            self.conquer_matrix[1][x][y] = 1
+            
+        for x, y in self.walls:
+            self.walls_matrix[x][y] = 1
+        
+        for i in range(self.MAX_SIZE):
+            for j in range(self.MAX_SIZE):
+                if(i >= self.height or j >= self.width):
+                    self.walls_matrix[i][j] = 1
+        
+            
+        for pos in self.treasures:
+            self.treasures_matrix[pos[0]][pos[1]] = pos[2]
+    
+    def get_agent_matrix(self):
+        return self.agents_matrix
     
     def get_act(act):
         switcher = {
@@ -99,17 +89,17 @@ class Environment(object):
                 (0, -1): 7,
                 (1, -1): 8,
             }
-        return switcher.get(act, "nothing")
+        return switcher.get(act, 0)
     
     def compute_score_area(self, state, player):
         area_matrix = []
-        score_matrix, agent_matrix, conquer_matrix, treasures_matrix = state
+        score_matrix, agent_matrix, conquer_matrix, treasures_matrix, walls_matrix = state
         visit = []
         score = 0
-        for i in range(20):
-            visit.append([0] * 20)
-            area_matrix.append([0] * 20)
-            for j in range(20):
+        for i in range(self.MAX_SIZE):
+            visit.append([0] * self.MAX_SIZE)
+            area_matrix.append([0] * self.MAX_SIZE)
+            for j in range(self.MAX_SIZE):
                 visit[i][j] = conquer_matrix[player][i][j]
             
         def is_border(x, y):
@@ -145,8 +135,8 @@ class Environment(object):
             return temp_score
         
         
-        for i in range(20):
-            for j in range(20):
+        for i in range(self.MAX_SIZE):
+            for j in range(self.MAX_SIZE):
                 if visit[i][j] == 0:
                     temp = dfs(i, j)
                     score += max(0, temp)
@@ -154,13 +144,13 @@ class Environment(object):
         return score, area_matrix
         
     def compute_score(self, state):
-        score_matrix, agent_matrix, conquer_matrix, treasures_matrix = state
+        score_matrix, agent_matrix, conquer_matrix, treasures_matrix, walls_matrix = state
         score_title_A = 0
         score_title_B = 0
         treasure_score_1 = 0
         treasure_score_2 = 0
-        for i in range(20):
-            for j in range(20):
+        for i in range(self.MAX_SIZE):
+            for j in range(self.MAX_SIZE):
                 if(conquer_matrix[0][i][j] == 1):
                     score_title_A += score_matrix[i][j]
                 if(conquer_matrix[1][i][j] == 1):
@@ -180,8 +170,8 @@ class Environment(object):
         return score_A, score_B, treasure_score_1, treasure_score_2, area_matrix_1
     
     
-    def check_next_action(self, _act, id_agent, agent_coord):
-        x, y = agent_coord[id_agent][0], agent_coord[id_agent][1]
+    def check_next_action(self, _act, id_agent, agent_pos):
+        x, y = agent_pos[id_agent][0], agent_pos[id_agent][1]
         x, y = self.next_action(x, y, _act)
         if not (x >= 0 and x < self.height and y >= 0 and y < self.width):
             return False
@@ -199,10 +189,10 @@ class Environment(object):
         return [x + _action[0], y + _action[1]]
     
     def get_agent_state(self, agent_matrix, agent_id):
-        agent_matrix = copy.deepcopy(agent_matrix)
-        for i in range(20):
-            for j in range(20):
-                if agent_matrix[i][j] == agent_id + 1:
+        agent_matrix = copy(agent_matrix)
+        for i in range(self.MAX_SIZE):
+            for j in range(self.MAX_SIZE):
+                if agent_matrix[0][i][j] == 1:
                     agent_matrix[i][j] = 1
                 else:
                     agent_matrix[i][j] = 0
@@ -231,7 +221,7 @@ class Environment(object):
         
     
     def predict_scores(self, x, y, state, predict, act, area_matrix):
-        score_matrix, agents_matrix, conquer_matrix, treasures_matrix = state
+        score_matrix, agents_matrix, conquer_matrix, treasures_matrix, walls_matrix = state
         score = 0
         discount = 0.02
         reduce_negative = 0.02
@@ -286,78 +276,78 @@ class Environment(object):
         # print(score)
         return score
     
-    def fit_action(self, agent_id, state, act, agent_coord_1, agent_coord_2, predict = True):
-        score_matrix, agents_matrix, conquer_matrix, treasures_matrix = copy.deepcopy(state)
-        x, y = agent_coord_1[agent_id][0], agent_coord_1[agent_id][1]     
-        new_coord = (self.next_action(x, y, act))
-        _x, _y = new_coord
+    def fit_action(self, agent_id, state, act, agent_pos_1, agent_pos_2, predict = True):
+        score_matrix, agents_matrix, conquer_matrix, treasures_matrix, walls_matrix = copy(state)
+        x, y = agent_pos_1[agent_id][0], agent_pos_1[agent_id][1]     
+        new_pos = (self.next_action(x, y, act))
+        _x, _y = new_pos
         aux_score = 0
         valid = True
         punish = 0
-        if _x >= 0 and _x < self.height and _y >= 0 and _y < self.width and score_matrix[_x][_y] > -100:
-            # aux_score += (treasures_matrix[_x][_y] + score_matrix[_x][_y]) * 0.4
-            if agents_matrix[_x][_y] == 0:
+        if _x >= 0 and _x < self.height and _y >= 0 and _y < self.width and walls_matrix[_x][_y] == 0:
+            if agents_matrix[0][_x][_y] == 0 and agents_matrix[1][_x][_y] == 0:
                 if conquer_matrix[1][_x][_y] == 0:
-                    agents_matrix[_x][_y] = agent_id + 1
-                    agents_matrix[x][y] = 0
+                    agents_matrix[0][_x][_y] = 1
+                    agents_matrix[0][x][y] = 0
                     conquer_matrix[0][_x][_y] = 1
-                    agent_coord_1[agent_id][0] = _x
-                    agent_coord_1[agent_id][1] = _y
+                    agent_pos_1[agent_id][0] = _x
+                    agent_pos_1[agent_id][1] = _y
                     aux_score += 1
                 else:
                     conquer_matrix[1][_x][_y] = 0
                     aux_score -= 0.5
-                    punish += 20
-                    
-                    # if _x == self.precoord[agent_id][0] and _y == self.precoord[agent_id][1]:
-                    #     aux_score -= 2
+                    punish += self.MAX_SIZE
         else:
             valid = False
-        state = [score_matrix, agents_matrix, conquer_matrix, treasures_matrix]
+            
+        state = [score_matrix, agents_matrix, conquer_matrix, treasures_matrix, walls_matrix]
         score_1, score_2, treasures_score_1, treasures_score_2, area_matrix = self.compute_score(state)
-        if valid:
-            aux_score += self.predict_scores(_x, _y, state, predict, act, area_matrix)
-        # print(aux_score, score_1 + treasures_score_1 - score_2 - treasures_score_2)
+            
         if(predict is False):
             aux_score = 0
-        self.precoord = copy.deepcopy(self.agent_coord_1)
-        return valid, state, agent_coord_1, score_1 + treasures_score_1 - score_2 - treasures_score_2 + aux_score
+        else:
+            if valid:
+                aux_score += self.predict_scores(_x, _y, state, predict, act, area_matrix)
+            
+        return valid, state, agent_pos_1, score_1 + treasures_score_1 - score_2 - treasures_score_2 + aux_score
     
     def next_frame(self, actions_1, actions_2, BGame, change):
         
         point_punish = 30 
         punish = 0
-        new_coord_A = []
-        new_coord_B = []
+        new_pos_A = []
+        new_pos_B = []
         check_A = [0] * self.num_agents
         check_B = [0] * self.num_agents
+    
+        # print(actions_2)
         
         for i in range(self.num_agents):
-            x, y = self.agent_coord_1[i][0], self.agent_coord_1[i][1]
-            new_coord_A.append(self.next_action(x, y, actions_1[i]))
-            x, y = self.agent_coord_2[i][0], self.agent_coord_2[i][1]
-            new_coord_B.append(self.next_action(x, y, actions_2[i]))
-            
+            x, y = self.agent_pos_1[i][0], self.agent_pos_1[i][1]
+            new_pos_A.append(self.next_action(x, y, actions_1[i]))
+            x, y = self.agent_pos_2[i][0], self.agent_pos_2[i][1]
+            new_pos_B.append(self.next_action(x, y, actions_2[i]))
+        
         for i in range(self.num_agents):
-            x, y = new_coord_A[i]
+            x, y = new_pos_A[i]
             if(not (x >= 0 and x < self.height and y >= 0 and y < self.width)):
-                # print(change, self.agent_coord_1[i][0], self.agent_coord_1[i][1], x, y, ' Warning1!\n')
+                # print(change, self.agent_pos_1[i][0], self.agent_pos_1[i][1], x, y, ' Warning1!\n')
                 check_A[i] = 1
-                new_coord_A[i] = [self.agent_coord_1[i][0], self.agent_coord_1[i][1]]
+                new_pos_A[i] = [self.agent_pos_1[i][0], self.agent_pos_1[i][1]]
                 punish += point_punish
             elif(self.score_matrix[x][y] < -100):
                 check_A[i] = 1
-                new_coord_A[i] = [self.agent_coord_1[i][0], self.agent_coord_1[i][1]]
+                new_pos_A[i] = [self.agent_pos_1[i][0], self.agent_pos_1[i][1]]
                 punish += point_punish
             
         for i in range(self.num_agents):
-            x, y = new_coord_B[i]
+            x, y = new_pos_B[i]
             if(not (x >= 0 and x < self.height and y >= 0 and y < self.width)):
                 check_B[i] = 1
-                new_coord_B[i] = [self.agent_coord_2[i][0], self.agent_coord_2[i][1]]
+                new_pos_B[i] = [self.agent_pos_2[i][0], self.agent_pos_2[i][1]]
             elif(self.score_matrix[x][y] < -100):
                 check_B[i] = 1
-                new_coord_B[i] = [self.agent_coord_2[i][0], self.agent_coord_2[i][1]]
+                new_pos_B[i] = [self.agent_pos_2[i][0], self.agent_pos_2[i][1]]
                     
         # create connect matrix
         connect_matrix = []
@@ -366,46 +356,46 @@ class Environment(object):
             
         for i in range(2 * self.num_agents):
             if i < self.num_agents:
-                X = new_coord_A[i]
+                X = new_pos_A[i]
             else:
-                X = new_coord_B[i % self.num_agents]
+                X = new_pos_B[i % self.num_agents]
             for j in range(2 * self.num_agents):
                 if i == j:
                     continue
                 if j < self.num_agents:
-                    Y = self.agent_coord_1[j]
+                    Y = self.agent_pos_1[j]
                     if X[0] == Y[0] and X[1] == Y[1]:
                         connect_matrix[i][j] = 1
                 else:
-                    Y = self.agent_coord_2[j % self.num_agents]
+                    Y = self.agent_pos_2[j % self.num_agents]
                     if X[0] == Y[0] and X[1] == Y[1]:
                         connect_matrix[i][j] = 1
                         
         # if conflict action to 1 square
         for i in range(self.num_agents):
             for j in range(self.num_agents):
-                if new_coord_A[i][0] == new_coord_B[j][0] and\
-                    new_coord_A[i][1] == new_coord_B[j][1]:
+                if new_pos_A[i][0] == new_pos_B[j][0] and\
+                    new_pos_A[i][1] == new_pos_B[j][1]:
                     check_A[i] = 1
                     check_B[j] = 1
                     
-                if new_coord_A[i][0] == new_coord_A[j][0] and\
-                    new_coord_A[i][1] == new_coord_A[j][1] and i != j:
+                if new_pos_A[i][0] == new_pos_A[j][0] and\
+                    new_pos_A[i][1] == new_pos_A[j][1] and i != j:
                     check_A[i] = 1
                     check_A[j] = 1
                     punish += point_punish
                     
-                if new_coord_B[i][0] == new_coord_B[j][0] and\
-                    new_coord_B[i][1] == new_coord_B[j][1] and i != j:
+                if new_pos_B[i][0] == new_pos_B[j][0] and\
+                    new_pos_B[i][1] == new_pos_B[j][1] and i != j:
                     check_B[i] = 1
                     check_B[j] = 1
         
         
         for i in range(self.num_agents):
             if check_A[i] == 1:
-                new_coord_A[i] = [self.agent_coord_1[i][0], self.agent_coord_1[i][1]]
+                new_pos_A[i] = [self.agent_pos_1[i][0], self.agent_pos_1[i][1]]
             if check_B[i] == 1:
-                new_coord_B[i] = [self.agent_coord_2[i][0], self.agent_coord_2[i][1]]
+                new_pos_B[i] = [self.agent_pos_2[i][0], self.agent_pos_2[i][1]]
                     
         # find the clique
         for i in range(2 * self.num_agents):
@@ -462,11 +452,11 @@ class Environment(object):
                     if connect_matrix[u][j] == 1 and u != j:
                         ck = True
                         if j < self.num_agents:
-                            x, y = new_coord_A[j]
+                            x, y = new_pos_A[j]
                             if self.conquer_matrix[1][x][y] == 1:
                                 ck = False
                         else:
-                            x, y = new_coord_B[j % self.num_agents]
+                            x, y = new_pos_B[j % self.num_agents]
                             if self.conquer_matrix[0][x][y] == 1:
                                 ck = False
                         if visit[j] == 1:
@@ -490,76 +480,76 @@ class Environment(object):
                                 
         for i in range(self.num_agents):
             if check_A[i] == 1:
-                new_coord_A[i] = [self.agent_coord_1[i][0], self.agent_coord_1[i][1]]
+                new_pos_A[i] = [self.agent_pos_1[i][0], self.agent_pos_1[i][1]]
             if check_B[i] == 1:
-                new_coord_B[i] = [self.agent_coord_2[i][0], self.agent_coord_2[i][1]]
+                new_pos_B[i] = [self.agent_pos_2[i][0], self.agent_pos_2[i][1]]
         
         
         # change before action
         for i in range(self.num_agents):
             if check_A[i] == 0:
-                x, y = new_coord_A[i]
+                x, y = new_pos_A[i]
                 if(self.conquer_matrix[1][x][y] == 0):
-                    if self.agent_coord_1[i][0] != new_coord_A[i][0] or self.agent_coord_1[i][1] != new_coord_A[i][1]:
-                        self.agents_matrix[self.agent_coord_1[i][0]][self.agent_coord_1[i][1]] = 0
-                        self.agents_matrix[x][y] = 0
+                    if self.agent_pos_1[i][0] != new_pos_A[i][0] or self.agent_pos_1[i][1] != new_pos_A[i][1]:
+                        self.agents_matrix[0][self.agent_pos_1[i][0]][self.agent_pos_1[i][1]] = 0
+                        self.agents_matrix[0][x][y] = 0
                         if(change):
-                            BGame.redraw_squares(self.agent_coord_1[i][0], self.agent_coord_1[i][1], i + 1)
+                            BGame.redraw_squares(self.agent_pos_1[i][0], self.agent_pos_1[i][1], i + 1)
                 else:
-                    self.agents_matrix[x][y] = 0
+                    self.agents_matrix[0][x][y] = self.agents_matrix[1][x][y] = 0
                                       
             if check_B[i] == 0:
-                x, y = new_coord_B[i]
+                x, y = new_pos_B[i]
                 if(self.conquer_matrix[0][x][y] == 0):
-                    if self.agent_coord_2[i][0] != new_coord_B[i][0] or self.agent_coord_2[i][1] != new_coord_B[i][1]:
-                        self.agents_matrix[x][y] = 0
-                        self.agents_matrix[self.agent_coord_2[i][0]][self.agent_coord_2[i][1]] = 0
+                    if self.agent_pos_2[i][0] != new_pos_B[i][0] or self.agent_pos_2[i][1] != new_pos_B[i][1]:
+                        self.agents_matrix[1][x][y] = 0
+                        self.agents_matrix[1][self.agent_pos_2[i][0]][self.agent_pos_2[i][1]] = 0
                         if(change):
-                            BGame.redraw_squares(self.agent_coord_2[i][0], self.agent_coord_2[i][1], -i - 1)
+                            BGame.redraw_squares(self.agent_pos_2[i][0], self.agent_pos_2[i][1], -i - 1)
                 else:
-                    self.agents_matrix[x][y] = 0
+                    self.agents_matrix[0][x][y] = self.agents_matrix[1][x][y] = 0
                         
         # change after action
         for i in range(self.num_agents):
             if check_A[i] == 0:
-                x, y = new_coord_A[i]
+                x, y = new_pos_A[i]
                 if(self.conquer_matrix[1][x][y] == 1):
                     self.conquer_matrix[1][x][y] = 0
                     if(change):
                         BGame.reset_square(x, y, 0)
-                    new_coord_A[i] = [self.agent_coord_1[i][0], self.agent_coord_1[i][1]]
+                    new_pos_A[i] = [self.agent_pos_1[i][0], self.agent_pos_1[i][1]]
                     check_A[i] = 1
                 else:
                     self.conquer_matrix[0][x][y] = 1
-                    self.agents_matrix[x][y] = i + 1
+                    self.agents_matrix[0][x][y] = 1
                     
             if check_B[i] == 0:
-                x, y = new_coord_B[i]
+                x, y = new_pos_B[i]
                 if(self.conquer_matrix[0][x][y] == 1):
                     self.conquer_matrix[0][x][y] = 0
                     if(change):
                         BGame.reset_square(x, y, 0)
-                    new_coord_B[i] = [self.agent_coord_2[i][0], self.agent_coord_2[i][1]]
+                    new_pos_B[i] = [self.agent_pos_2[i][0], self.agent_pos_2[i][1]]
                     check_B[i] = 1
                 else:
                     self.conquer_matrix[1][x][y] = 1
-                    self.agents_matrix[x][y] = -i - 1
+                    self.agents_matrix[1][x][y] = 1
         
         old_score = self.score_mine
                 
         for i in range(self.num_agents):
-            self.agent_coord_1[i] = [new_coord_A[i][0], new_coord_A[i][1]]
-            self.agent_coord_2[i] = [new_coord_B[i][0], new_coord_B[i][1]]
+            self.agent_pos_1[i] = [new_pos_A[i][0], new_pos_A[i][1]]
+            self.agent_pos_2[i] = [new_pos_B[i][0], new_pos_B[i][1]]
             
-        state = [self.score_matrix, self.agents_matrix, self.conquer_matrix, self.treasures_matrix]
+        state = [self.score_matrix, self.agents_matrix, self.conquer_matrix, self.treasures_matrix, self.walls_matrix]
         score_A, score_B, treasure_score_1, treasure_score_2, area_matrix = self.compute_score(state)
         self.treasure_score_1 += treasure_score_1
         self.treasure_score_2 += treasure_score_2
         
         if(change):
             for i in range(self.num_agents):
-                BGame.reset_square(self.agent_coord_1[i][0], self.agent_coord_1[i][1], i + 1)
-                BGame.reset_square(self.agent_coord_2[i][0], self.agent_coord_2[i][1], - i - 1)
+                BGame.reset_square(self.agent_pos_1[i][0], self.agent_pos_1[i][1], i + 1)
+                BGame.reset_square(self.agent_pos_2[i][0], self.agent_pos_2[i][1], - i - 1)
             BGame.show_score()
         
         self.score_mine = score_A + self.treasure_score_1
@@ -573,7 +563,6 @@ class Environment(object):
         
         terminal = (self.remaining_turns == 0)
             
-        
         return [state, reward, terminal, self.turns - self.remaining_turns]
 
         

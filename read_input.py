@@ -11,10 +11,10 @@ def read_state(file_name):
         for i in range(h):
             array = list(map(int, f.readline().split()))
             while(len(array) < MAX_SIZE):
-                array.append(-1000)
+                array.append(0)
             score_matrix.append(array)
         while(len(score_matrix) < MAX_SIZE):
-            score_matrix.append([-1000] * MAX_SIZE)
+            score_matrix.append([0] * MAX_SIZE)
         num_tresures = list(map(int, f.readline().split()))[0]
         treasures = []
         for j in range(num_tresures):
@@ -76,10 +76,10 @@ class Data():
                 for i in range(h):
                     array = list(map(int, f.readline().split()))
                     while(len(array) < MAX_SIZE):
-                        array.append(-1000)
+                        array.append(0)
                     score_matrix.append(array)
                 while(len(score_matrix) < MAX_SIZE):
-                    score_matrix.append([-1000] * MAX_SIZE)
+                    score_matrix.append([0] * MAX_SIZE)
                     
                 turns = list(map(int, f.readline().split()))[0]
                 num_agens = list(map(int, f.readline().split()))[0]
