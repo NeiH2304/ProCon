@@ -62,7 +62,7 @@ class Agent():
         if self.use_cuda:
             self.actor.to(self.device)
             self.target_actor.to(self.device)
-            self.critics.to(self.device)
+            self.critic.to(self.device)
             self.target_critic.to(self.device)
         
         
@@ -113,8 +113,9 @@ class Agent():
             _state = torch.from_numpy(state).to(self.device)
             action = torch.from_numpy(action).to(self.device)
             reward = self.target_critic(_state, action).to('cpu').data.numpy()[0]
-            # print(reward)
-            reward_predict.append(reward)
+            reward_predict.append(reward[0])
+            
+        print(r[0], reward_predict[0])
             
         reward_predict = np.array(reward_predict)
         pre_acts = np.array(pre_acts, dtype=np.float32)
@@ -190,7 +191,6 @@ class Agent():
             actions.append(act)
             
         self.steps_done += 1
-        print(actions)
         return actions
                       
         
@@ -436,10 +436,10 @@ class Agent():
         :param episode_count: the count of episodes iterated
         :return:
         """
-        torch.save(self.target_actor.state_dict(), './Models/' + str(episode_count) + '_target_actor.pt')
-        torch.save(self.target_critic.state_dict(), './Models/' + str(episode_count) + '_target_critic.pt')
-        torch.save(self.actor.state_dict(), './Models/' + str(episode_count) + '_actor.pt')
-        torch.save(self.critics.state_dict(), './Models/' + str(episode_count) + '_critic.pt')
+        torch.save(self.target_actor.state_dict(), './Models/target_actor.pt')
+        torch.save(self.target_critic.state_dict(), './Models/target_critic.pt')
+        torch.save(self.actor.state_dict(), './Models/actor.pt')
+        torch.save(self.critic.state_dict(), './Models/critic.pt')
         print('Models saved successfully')
         
     def load_models(self, episode):
@@ -448,16 +448,22 @@ class Agent():
         :param episode: the count of episodes iterated (used to find the file name)
         :return:
         """
-        for i in range(self.num_agents):
-            self.target_actor[i].load_state_dict(
-                torch.load('./Models/' + str(episode) + '_target_actor' + str(i) + '.pt', map_location = self.device))
-            # self.target_critic[i].load_state_dict(
-            #     torch.load('./Models/' + str(episode) + '_target_critic' + str(i) + '.pt', map_location = self.device))
-            self.actor[i].load_state_dict(
-                torch.load('./Models/' + str(episode) + '_actor' + str(i) + '.pt', map_location = self.device))
-            # self.critics[i].load_state_dict(
-            #     torch.load('./Models/' + str(episode) + '_critic' + str(i) + '.pt', map_location = self.device))
-            utils.hard_update(self.target_actor[i], self.actor[i])
-            # utils.hard_update(self.target_critic, self.critics)
+        self.target_actor.load_state_dict(
+            torch.load('./Models/target_actor.pt', map_location = self.device))
+        self.target_critic.load_state_dict(
+            torch.load('./Models/target_critic.pt', map_location = self.device))
+        self.actor.load_state_dict(
+            torch.load('./Models/actor.pt', map_location = self.device))
+        self.critic.load_state_dict(
+            torch.load('./Models/critic.pt', map_location = self.device))
+        
+        self.target_actor.eval()
+        self.target_critic.eval()
+        self.actor.eval()
+        self.critic.eval()
+                
+        
+        utils.hard_update(self.target_actor, self.actor)
+        utils.hard_update(self.target_critic, self.critic)
         print('Models loaded succesfully')
 

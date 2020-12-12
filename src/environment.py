@@ -113,7 +113,7 @@ class Environment(object):
             visit[x][y] = 1
             area_matrix[x][y] = 1
             temp_score = abs(score_matrix[x][y])
-            if(score_matrix[x][y] < -100):
+            if(walls_matrix[x][y] == 1):
                 area_matrix[x][y] = 0
                 temp_score = 0
             if is_border(x, y):
@@ -176,7 +176,7 @@ class Environment(object):
         if not (x >= 0 and x < self.height and y >= 0 and y < self.width):
             return False
         
-        return self.score_matrix[x][y] > -100
+        return self.walls_matrix[x][y] == 0
     
     def next_action(self, x, y, act):
         def action(x):
@@ -234,7 +234,7 @@ class Environment(object):
                 new_x = j
                 new_y = y - i
                 if new_y >= 0:
-                    if score_matrix[new_x][new_y] > -100: 
+                    if walls_matrix[new_x][new_y] == 0: 
                         _sc = treasures_matrix[new_x][new_y] ** p_1
                         if(conquer_matrix[0][new_x][new_y] != 1):
                             _sc += (max(reduce_negative * score_matrix[new_x][new_y], score_matrix[new_x][new_y]) ** p_2)
@@ -244,7 +244,7 @@ class Environment(object):
                 new_x = j
                 new_y = y + i
                 if new_y  < self.width:
-                    if score_matrix[new_x][new_y] > -100: 
+                    if walls_matrix[new_x][new_y] == 0: 
                         _sc = treasures_matrix[new_x][new_y] ** p_1
                         if(conquer_matrix[0][new_x][new_y] != 1):
                             _sc += (max(reduce_negative * score_matrix[new_x][new_y], score_matrix[new_x][new_y]) ** p_2)
@@ -255,7 +255,7 @@ class Environment(object):
                 new_x = x - i
                 new_y = k
                 if new_x >= 0:
-                    if score_matrix[new_x][new_y] > -100: 
+                    if walls_matrix[new_x][new_y] == 0: 
                         _sc = treasures_matrix[new_x][new_y] ** p_1
                         if(conquer_matrix[0][new_x][new_y] != 1):
                             _sc += (max(reduce_negative * score_matrix[new_x][new_y], score_matrix[new_x][new_y]) ** p_2)
@@ -265,7 +265,7 @@ class Environment(object):
                 new_x = x + i
                 new_y = k
                 if new_x < self.height:
-                    if score_matrix[new_x][new_y] > -100: 
+                    if walls_matrix[new_x][new_y] == 0: 
                         _sc = treasures_matrix[new_x][new_y] ** p_1
                         if(conquer_matrix[0][new_x][new_y] != 1):
                             _sc += (max(reduce_negative * score_matrix[new_x][new_y], score_matrix[new_x][new_y]) ** p_2)
@@ -335,7 +335,7 @@ class Environment(object):
                 check_A[i] = 1
                 new_pos_A[i] = [self.agent_pos_1[i][0], self.agent_pos_1[i][1]]
                 punish += point_punish
-            elif(self.score_matrix[x][y] < -100):
+            elif(self.walls_matrix[x][y] == 1):
                 check_A[i] = 1
                 new_pos_A[i] = [self.agent_pos_1[i][0], self.agent_pos_1[i][1]]
                 punish += point_punish
@@ -345,7 +345,7 @@ class Environment(object):
             if(not (x >= 0 and x < self.height and y >= 0 and y < self.width)):
                 check_B[i] = 1
                 new_pos_B[i] = [self.agent_pos_2[i][0], self.agent_pos_2[i][1]]
-            elif(self.score_matrix[x][y] < -100):
+            elif(self.walls_matrix[x][y] == 1):
                 check_B[i] = 1
                 new_pos_B[i] = [self.agent_pos_2[i][0], self.agent_pos_2[i][1]]
                     
@@ -555,12 +555,12 @@ class Environment(object):
         self.score_mine = score_A + self.treasure_score_1
         self.score_opponent = score_B + self.treasure_score_2
         
-        reward = self.score_mine - old_score - punish
+        reward = self.score_mine - self.score_opponent - punish
         self.remaining_turns -= 1
         
         if(change):
             BGame.save_score(self.score_mine, self.score_opponent, self.remaining_turns)
-        
+            print(self.score_mine, self.score_opponent)
         terminal = (self.remaining_turns == 0)
             
         return [state, reward, terminal, self.turns - self.remaining_turns]

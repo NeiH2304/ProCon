@@ -243,9 +243,9 @@ class BoardGame():
                     self.reset_square(i, j, 0)
                 if self.treasures_matrix[i][j] > 0:
                     self.show_treasure_value(self.treasures_matrix[i][j], i, j)
-                if self.agents_matrix[i][j] > 0 :
+                if self.agents_matrix[0][i][j] == 1:
                     self.reset_square(i, j, 1)
-                if(self.agents_matrix[i][j] < 0):
+                if(self.agents_matrix[1][i][j] == 1):
                     self.reset_square(i, j, -1)
                     
         self.show_score()

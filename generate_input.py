@@ -4,8 +4,8 @@ import random
 for i in range(2000):
     file_name = 'Input_File/inp_file_' + str(i) + '.txt'
     f = open(file_name, 'w')
-    m = random.randint(10, 20)
-    n = random.randint(10, 20)
+    m = random.randint(20, 20)
+    n = random.randint(20, 20)
         
     score_matrix = []
     mx = random.randint(3, 30)

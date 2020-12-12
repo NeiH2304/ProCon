@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-EPS = 1
+EPS = 0.1
 
 def fanin_init(size, fanin=None):
 	fanin = fanin or size[0]
@@ -35,7 +35,7 @@ class Critic(nn.Module):
 		self.fc2.weight.data = fanin_init(self.fc2.weight.data.size())
 
 		self.fc3 = nn.Linear(256, 1)
-		self.fc3.weight.data.uniform_(-EPS,EPS)
+		self.fc3.weight.data.uniform_(-1,1)
 
 	def forward(self, state, action):
 		"""
@@ -93,7 +93,7 @@ class Actor(nn.Module):
 		x = F.relu(self.fc1(state))
 		x = F.relu(self.fc2(x))
 		x = F.relu(self.fc3(x))
-		action = F.tanh(self.fc4(x))
+		action = F.softmax(self.fc4(x))
 		return action
 
 
