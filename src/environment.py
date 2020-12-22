@@ -313,14 +313,14 @@ class Environment(object):
     
     def next_frame(self, actions_1, actions_2, BGame, change):
         
-        point_punish = 30 
+        point_punish = 30
         punish = 0
         new_pos_A = []
         new_pos_B = []
         check_A = [0] * self.num_agents
         check_B = [0] * self.num_agents
     
-        # print(actions_2)
+        # print(actions_1)
         
         for i in range(self.num_agents):
             x, y = self.agent_pos_1[i][0], self.agent_pos_1[i][1]
@@ -535,7 +535,7 @@ class Environment(object):
                     self.conquer_matrix[1][x][y] = 1
                     self.agents_matrix[1][x][y] = 1
         
-        old_score = self.score_mine
+        old_score = self.score_mine - self.score_opponent
                 
         for i in range(self.num_agents):
             self.agent_pos_1[i] = [new_pos_A[i][0], new_pos_A[i][1]]
@@ -555,12 +555,12 @@ class Environment(object):
         self.score_mine = score_A + self.treasure_score_1
         self.score_opponent = score_B + self.treasure_score_2
         
-        reward = self.score_mine - self.score_opponent - punish
+        reward = self.score_mine - self.score_opponent - old_score - punish
         self.remaining_turns -= 1
         
         if(change):
             BGame.save_score(self.score_mine, self.score_opponent, self.remaining_turns)
-            print(self.score_mine, self.score_opponent)
+            # print(self.score_mine, self.score_opponent)
         terminal = (self.remaining_turns == 0)
             
         return [state, reward, terminal, self.turns - self.remaining_turns]
