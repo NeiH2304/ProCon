@@ -155,10 +155,10 @@ class Agent():
         self.actor_optimizer.zero_grad()
         loss_actor.backward()
         self.actor_optimizer.step()
-        for parameter in self.actor.parameters():
-            if(parameter.grad is None):
-                print(parameter)
-            print(parameter.grad)
+        # for parameter in self.actor.parameters():
+        #     if(parameter.grad is None):
+        #         print(parameter)
+        #     print(parameter.grad)
         utils.soft_update(self.target_actor, self.actor, self.tau)
         utils.soft_update(self.target_critic, self.critic, self.tau)
         
