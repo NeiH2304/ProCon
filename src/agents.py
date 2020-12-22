@@ -123,16 +123,16 @@ class Agent():
                 _nags = flatten(self.get_agent_state(npos[i][agent]))
                 action_3 = torch.cat((action_3, self.actor.forward(
                     torch.from_numpy(np.array([flatten(s[i])], dtype = np.float32)).to(self.device),
-                    torch.from_numpy(np.array([flatten(_ags)], dtype = np.float32)).to(self.device))))
+                    torch.from_numpy(np.array([flatten(_ags)], dtype = np.float32)).to(self.device))), dim=1)
                 
                 action_1 = torch.cat((action_1, self.target_actor.forward(
                     torch.from_numpy(np.array([flatten(s[i])], dtype = np.float32)).to(self.device),
-                    torch.from_numpy(np.array([flatten(_ags)], dtype = np.float32)).to(self.device))))
+                    torch.from_numpy(np.array([flatten(_ags)], dtype = np.float32)).to(self.device))), dim=1)
                 action_2 = torch.cat((action_2, self.target_actor.forward(
                     torch.from_numpy(np.array([flatten(ns[i])], dtype = np.float32)).to(self.device),
-                    torch.from_numpy(np.array([flatten(_nags)], dtype = np.float32)).to(self.device))))
+                    torch.from_numpy(np.array([flatten(_nags)], dtype = np.float32)).to(self.device))), dim=1)
             ags = torch.cat((ags, action_1))
-            nags = torch.cat((nags, action_2))
+            nags = torch.cat((nags, action_2)).to(self.device)
             _a = torch.cat((_a, action_3))
         s = Variable(torch.from_numpy(s).to(self.device), requires_grad=True)
         ags = Variable(ags, requires_grad=True)
