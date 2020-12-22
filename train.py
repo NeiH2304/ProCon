@@ -84,7 +84,7 @@ def train(opt):
                     for i in range(agent_1.num_agents):
                         _state = agent_1.get_state_actor()
                         agent_state = agent_1.get_agent_state(agent_1.env.agent_pos_1[0])
-                        agent_state = torch.from_numpy(np.array([flatten(agent_state)], dtype=np.float32))
+                        agent_state = torch.from_numpy(np.array([flatten(agent_state)], dtype=np.float32)).to(agent_1.device)
                         _state = np.array([flatten(_state)], dtype=np.float32)
                         a  = agent_1.actor(
                             torch.from_numpy(_state).to(agent_1.device), agent_state).data.to('cpu').numpy()[0]
