@@ -116,15 +116,15 @@ class Agent():
             action_2 = torch.tensor([], requires_grad=True).to(self.device)
             action_3 = torch.tensor([], requires_grad=True).to(self.device)
             for agent in range(self.num_agent_lim):
-                _ags = flatten(self.get_agent_state(pos[i][agent]))
-                _nags = flatten(self.get_agent_state(npos[i][agent]))
+                _ags = pos[i][agent]
+                _nags = npos[i][agent]
                 
-                state = torch.from_numpy(np.array([flatten(s[i])], dtype = np.float32)).to(self.device)
-                ag_state = torch.from_numpy(np.array([flatten(_ags)], dtype = np.float32)).to(self.device)
+                state = torch.from_numpy(np.array([s[i]])).to(self.device)
+                ag_state = torch.from_numpy(np.array([_ags], dtype = np.float32)).to(self.device)
                 action_3 = torch.cat((action_3, self.actor.forward(state, ag_state)), dim=1)
                 
-                state = torch.from_numpy(np.array([flatten(ns[i])], dtype = np.float32)).to(self.device)
-                ag_state = torch.from_numpy(np.array([flatten(_nags)], dtype = np.float32)).to(self.device)
+                state = torch.from_numpy(np.array([ns[i]])).to(self.device)
+                ag_state = torch.from_numpy(np.array([_nags])).to(self.device)
                 action_2 = torch.cat((action_2, self.target_actor.forward(state, ag_state)), dim=1)
             
             nags = torch.cat((nags, action_2))
@@ -401,6 +401,9 @@ class Agent():
             pos.append([-1, -1])
             next_pos.append([-1, -1])
             actions_1.append([0] * self.action_dim)
+        for agent in range(self.num_agent_lim):
+            pos[agent] = flatten(self.get_agent_state(pos[agent]))
+            next_pos[agent] = flatten(self.get_agent_state(next_pos[agent]))
         actions_1 = flatten(actions_1)
         self.memories.store_transition(state, pos, actions_1, reward, next_state, next_pos)
             

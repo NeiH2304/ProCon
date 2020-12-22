@@ -79,7 +79,7 @@ def train(opt):
                 Loss_critic_value.append(agent_1.critic_loss_value)
                 Loss_actor_value.append(agent_1.actor_loss_value)
                 
-                if _iter % 10 == 0:
+                if _iter % 3 == 0:
                     for i in range(agent_1.num_agents):
                         _state = agent_1.get_state_actor()
                         agent_state = agent_1.get_agent_state(agent_1.env.agent_pos_1[0])

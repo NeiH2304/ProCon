@@ -24,18 +24,18 @@ class Critic(nn.Module):
         self.num_agents = num_agents
         self.agent_dim = agent_dim
         
-        self.fcs1 = nn.Linear(state_dim,512)
+        self.fcs1 = nn.Linear(state_dim,1024)
         self.fcs1.weight.data = fanin_init(self.fcs1.weight.data.size())
-        self.fcs2 = nn.Linear(512,256)
+        self.fcs2 = nn.Linear(1024,512)
         self.fcs2.weight.data = fanin_init(self.fcs2.weight.data.size())
         
-        self.fca1 = nn.Linear(self.action_dim * self.num_agents, 256)
+        self.fca1 = nn.Linear(self.action_dim * self.num_agents, 252)
         self.fca1.weight.data = fanin_init(self.fca1.weight.data.size())
         
-        self.fc2 = nn.Linear(512, 256)
+        self.fc2 = nn.Linear(764, 512)
         self.fc2.weight.data = fanin_init(self.fc2.weight.data.size())
                 
-        self.fc3 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(512, 128)
         self.fc3.weight.data = fanin_init(self.fc3.weight.data.size())
         
         self.fc4 = nn.Linear(128, 1)
@@ -72,16 +72,16 @@ class Actor(nn.Module):
         self.state_dim = state_dim
         self.action_dim = action_dim
         
-        self.fc1 = nn.Linear(state_dim, 512)
+        self.fc1 = nn.Linear(state_dim, 1024)
         self.fc1.weight.data = fanin_init(self.fc1.weight.data.size())
         
-        self.fc2 = nn.Linear(512 + agent_dim, 256)
+        self.fc2 = nn.Linear(1024, 512)
         self.fc2.weight.data = fanin_init(self.fc2.weight.data.size())
         
-        self.fc3 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(512 + agent_dim, 256)
         self.fc3.weight.data = fanin_init(self.fc3.weight.data.size())
         
-        self.fc4 = nn.Linear(128, action_dim)
+        self.fc4 = nn.Linear(256, action_dim)
         self.fc4.weight.data.uniform_(-EPS,EPS)
 
     def forward(self, state, agent_state):
@@ -94,8 +94,8 @@ class Actor(nn.Module):
         :return: Output action (Torch Variable: [n,action_dim] )
         """
         x = F.relu(self.fc1(state))
-        x = torch.cat((x, agent_state),dim=1)
         x = F.relu(self.fc2(x))
+        x = torch.cat((x, agent_state),dim=1)
         x = F.relu(self.fc3(x))
         action = F.softmax(self.fc4(x), -1)
         return action
