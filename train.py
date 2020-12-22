@@ -72,7 +72,6 @@ def train(opt):
                 # actions_2 = [0] * agent_2.num_agents
                 done = agent_1.learn(state_1, actions_1, actions_2, BGame, opt.show_screen, True)
                 done = agent_2.learn(agent_2.get_state_actor(), actions_2, actions_1, BGame, False, False)
-                
                 if opt.show_screen:
                     pygame.display.update()
                 

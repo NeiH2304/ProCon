@@ -561,7 +561,7 @@ class Environment(object):
         if(change):
             BGame.save_score(self.score_mine, self.score_opponent, self.remaining_turns)
             # print(self.score_mine, self.score_opponent)
-        terminal = (self.remaining_turns == 0)
+        terminal = (self.remaining_turns <= 0)
             
         return [state, reward, terminal, self.turns - self.remaining_turns]
 

@@ -110,37 +110,33 @@ class Agent():
             return
         
         s, pos, a, r, ns, npos = self.memories.sample(self.batch_size)    
-        
-        ags = torch.tensor([], requires_grad=True)
         nags = torch.tensor([], requires_grad=True)
         _a = torch.tensor([], requires_grad=True)
         for i in range(len(s)):
-            action_1 = torch.tensor([], requires_grad=True)
             action_2 = torch.tensor([], requires_grad=True)
             action_3 = torch.tensor([], requires_grad=True)
             for agent in range(self.num_agent_lim):
                 _ags = flatten(self.get_agent_state(pos[i][agent]))
                 _nags = flatten(self.get_agent_state(npos[i][agent]))
-                action_3 = torch.cat((action_3, self.actor.forward(
-                    torch.from_numpy(np.array([flatten(s[i])], dtype = np.float32)).to(self.device),
-                    torch.from_numpy(np.array([flatten(_ags)], dtype = np.float32)).to(self.device))), dim=1)
                 
-                action_1 = torch.cat((action_1, self.target_actor.forward(
-                    torch.from_numpy(np.array([flatten(s[i])], dtype = np.float32)).to(self.device),
-                    torch.from_numpy(np.array([flatten(_ags)], dtype = np.float32)).to(self.device))), dim=1)
-                action_2 = torch.cat((action_2, self.target_actor.forward(
-                    torch.from_numpy(np.array([flatten(ns[i])], dtype = np.float32)).to(self.device),
-                    torch.from_numpy(np.array([flatten(_nags)], dtype = np.float32)).to(self.device))), dim=1)
-            ags = torch.cat((ags, action_1))
-            nags = torch.cat((nags, action_2)).to(self.device)
+                state = torch.from_numpy(np.array([flatten(s[i])], dtype = np.float32)).to(self.device)
+                ag_state = torch.from_numpy(np.array([flatten(_ags)], dtype = np.float32)).to(self.device)
+                action_3 = torch.cat((action_3, self.actor.forward(state, ag_state)), dim=1)
+                
+                state = torch.from_numpy(np.array([flatten(ns[i])], dtype = np.float32)).to(self.device)
+                ag_state = torch.from_numpy(np.array([flatten(_nags)], dtype = np.float32)).to(self.device)
+                action_2 = torch.cat((action_2, self.target_actor.forward(state, ag_state)), dim=1)
+            
+            nags = torch.cat((nags, action_2))
             _a = torch.cat((_a, action_3))
+        
         s = Variable(torch.from_numpy(s).to(self.device), requires_grad=True)
-        ags = Variable(ags, requires_grad=True)
         a = Variable(torch.from_numpy(a).to(self.device), requires_grad=True)
         r = Variable(torch.from_numpy(r).to(self.device), requires_grad=True)
         ns = Variable(torch.from_numpy(ns).to(self.device), requires_grad=True)
-        # _a = Variable(_a)
-        # nags = Variable(nags, requires_grad=True)
+        _a.to(self.device)
+        nags = Variable(nags.to(self.device), requires_grad=True)
+        
         ''' ---------------------- optimize ----------------------
         Use target actor exploitation policy here for loss evaluation
         y_exp = r + gamma*Q'( s2, pi'(s2))
@@ -148,7 +144,7 @@ class Agent():
         '''
         next_val = torch.squeeze(self.target_critic.forward(ns, nags).detach())
         y_expected = r + self.gamma * next_val
-        y_predicted = 0 + torch.squeeze(self.critic.forward(s, ags))
+        y_predicted = 0 + torch.squeeze(self.critic.forward(s, a))
         ''' compute critic loss, and update the critic '''
         loss_critic = F.smooth_l1_loss(y_predicted, y_expected)
         self.critic_optimizer.zero_grad()
@@ -159,10 +155,10 @@ class Agent():
         self.actor_optimizer.zero_grad()
         loss_actor.backward()
         self.actor_optimizer.step()
-        # for parameter in self.actor.parameters():
-        #     if(parameter.grad is None):
-        #         print(parameter)
-            # print(parameter.grad)
+        for parameter in self.actor.parameters():
+            if(parameter.grad is None):
+                print(parameter)
+            print(parameter.grad)
         utils.soft_update(self.target_actor, self.actor, self.tau)
         utils.soft_update(self.target_critic, self.critic, self.tau)
         
@@ -432,7 +428,7 @@ class Agent():
             acts_1, acts_2, BGame, show_screen)
         
         if not saved:
-            return
+            return done
         
         if acts_1[0] == 0:
             reward -= 3
@@ -443,6 +439,8 @@ class Agent():
         for i in range(self.num_agent_lim - self.num_agents):
             pos.append([-1, -1])
             next_pos.append([-1, -1])
+            actions_1.append([0] * self.action_dim)
+        actions_1 = flatten(actions_1)
         self.memories.store_transition(state, pos, actions_1, reward, next_state, next_pos)
             
         self.optimize()
