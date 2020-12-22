@@ -197,12 +197,9 @@ class Agent():
                 for j in range(len(action)):
                     action[j] = action[j] * 1.0 / S
             else:
-                # print(agent_state)
                 action = self.get_exploration_action(np.array([flatten(state)], dtype=np.float32), agent_state)
             actions[agent] = action
-            # print(action)
         
-        # print(self.num_agents)
         return actions
                       
         
@@ -347,9 +344,7 @@ class Agent():
             next_states.append(state)
             
         return states, actions, rewards, next_states
-    
-        
-    
+         
     def select_random(self, state):
         actions = []
         for i in range(self.num_agents):
@@ -360,34 +355,9 @@ class Agent():
         act = self.get_exploration_action(np.array(flatten(state), dtype=np.float32))
         return [act]
     
-    def transform_to_critic_state(self, state):
-        state[1] = self.get_state_critic(state[1])
-        return state
-    
     def get_state_actor(self):
         return copy([self.env.score_matrix, self.env.agents_matrix, 
                 self.env.conquer_matrix, self.env.treasures_matrix, self.env.walls_matrix])
-              
-    def get_state_critic(self, state = None):
-        if state is None:
-            state = [self.score_matrix, self.agents_matrix,
-                              self.conquer_matrix, self.treasures_matrix]
-        state = copy(state)
-        state[1] = self.get_all_agent_matrix(state[1])
-        return state
-    
-    def get_all_agent_matrix(self, agents_matrix):
-        all_matrix = []
-        for k in range(8):
-            matrix = []
-            for i in range(20):
-                matrix.append([0] * 20)
-                for j in range(20):
-                    if agents_matrix[i][j] == k:
-                        matrix[i][j] = 1
-                
-            all_matrix.append(matrix)
-        return all_matrix
     
     def form_action_predict(self, actions):
         form_actions = []
@@ -398,15 +368,6 @@ class Agent():
             form_actions.append([1 if i == act else 0 for i in range(9)])
         return flatten(form_actions)
     
-    def action_flatten(self, acts):
-        _acts = []
-        for act in acts:
-            p = [1 if j == act else 0 for j in range(self.action_lim)]
-            _acts.append(p)
-        while(len(_acts) < self.num_agent_lim):
-            _acts.append([0] * self.action_lim)
-        return flatten(_acts)
-
     def learn(self, state, actions_1, actions_2, BGame, show_screen, saved):
         # act = [actions_1.argmax()]
         _actions_1 = copy(actions_1)
