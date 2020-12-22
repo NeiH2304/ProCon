@@ -110,11 +110,11 @@ class Agent():
             return
         
         s, pos, a, r, ns, npos = self.memories.sample(self.batch_size)    
-        nags = torch.tensor([], requires_grad=True)
-        _a = torch.tensor([], requires_grad=True)
+        nags = torch.tensor([], requires_grad=True).to(self.device)
+        _a = torch.tensor([], requires_grad=True).to(self.device)
         for i in range(len(s)):
-            action_2 = torch.tensor([], requires_grad=True)
-            action_3 = torch.tensor([], requires_grad=True)
+            action_2 = torch.tensor([], requires_grad=True).to(self.device)
+            action_3 = torch.tensor([], requires_grad=True).to(self.device)
             for agent in range(self.num_agent_lim):
                 _ags = flatten(self.get_agent_state(pos[i][agent]))
                 _nags = flatten(self.get_agent_state(npos[i][agent]))
